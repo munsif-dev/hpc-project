@@ -7,7 +7,7 @@ This note is derived from our discussion and explains the project in simple prog
 ## 1) Core idea in one sentence
 For every amino-acid character in a protein sequence, predict one label from `{H, E, C}` using nearby characters as context.
 
-`H` = helix  
+`H` = helix  ,,
 `E` = sheet  
 `C` = coil
 
