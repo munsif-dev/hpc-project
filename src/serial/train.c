@@ -27,15 +27,20 @@ static unsigned int shuf_state;
 
 static void shuf_seed(unsigned int s) { shuf_state = s; }
 
-static unsigned int shuf_rand(void) {
+static unsigned int shuf_rand(void)
+{
     shuf_state = shuf_state * 1664525u + 1013904223u;
     return shuf_state;
 }
 
-static void shuffle(int *arr, int n) {
-    for (int i = n - 1; i > 0; i--) {
+static void shuffle(int *arr, int n)
+{
+    for (int i = n - 1; i > 0; i--)
+    {
         int j = (int)(shuf_rand() % (unsigned int)(i + 1));
-        int tmp = arr[i]; arr[i] = arr[j]; arr[j] = tmp;
+        int tmp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = tmp;
     }
 }
 
@@ -43,11 +48,13 @@ static void shuffle(int *arr, int n) {
  * Main
  * ----------------------------------------------------------------------- */
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     Args args;
     parse_args(argc, argv, &args, "serial");
 
-    if (args.verbose) {
+    if (args.verbose)
+    {
         printf("=== train_serial ===\n");
         print_args(&args);
     }
@@ -55,8 +62,8 @@ int main(int argc, char **argv) {
     /* --- Load data --- */
     Dataset train, val, test;
     dataset_load(&train, args.data_path, "train");
-    dataset_load(&val,   args.data_path, "val");
-    dataset_load(&test,  args.data_path, "test");
+    dataset_load(&val, args.data_path, "val");
+    dataset_load(&test, args.data_path, "test");
 
     printf("Loaded: train=%d  val=%d  test=%d  feature_dim=%d\n",
            train.n, val.n, test.n, train.feature_dim);
@@ -66,14 +73,14 @@ int main(int argc, char **argv) {
     runlog_init(&log);
     strncpy(log.variant, "serial", sizeof(log.variant) - 1);
     snprintf(log.data_path, sizeof(log.data_path), "%s", args.data_path);
-    log.seed          = args.seed;
-    log.epochs        = args.epochs;
-    log.batch_size    = args.batch_size;
+    log.seed = args.seed;
+    log.epochs = args.epochs;
+    log.batch_size = args.batch_size;
     log.learning_rate = args.lr;
-    log.hidden1       = args.hidden1;
-    log.hidden2       = args.hidden2;
-    log.threads       = 1;
-    log.mpi_ranks     = 1;
+    log.hidden1 = args.hidden1;
+    log.hidden2 = args.hidden2;
+    log.threads = 1;
+    log.mpi_ranks = 1;
     runlog_set_dataset(&log, train.n, val.n, test.n, train.feature_dim, 3);
     runlog_set_compiler(&log, "gcc " __VERSION__, "-O3 -march=native");
 
@@ -86,24 +93,26 @@ int main(int argc, char **argv) {
     mlpgrad_alloc(&g, &m);
 
     /* --- Allocate scratch buffers (reused every sample) --- */
-    float *a1     = (float *)malloc((size_t)args.hidden1 * sizeof(float));
-    float *a2     = (float *)malloc((size_t)args.hidden2 * sizeof(float));
+    float *a1 = (float *)malloc((size_t)args.hidden1 * sizeof(float));
+    float *a2 = (float *)malloc((size_t)args.hidden2 * sizeof(float));
     float *logits = (float *)malloc(3 * sizeof(float));
-    float *probs  = (float *)malloc(3 * sizeof(float));
+    float *probs = (float *)malloc(3 * sizeof(float));
 
-    /* --- Prediction / index buffers --- */
-    int *indices      = (int *)malloc((size_t)train.n * sizeof(int));
-    int *y_pred_val   = (int *)malloc((size_t)val.n   * sizeof(int));
+    /* --- Prediction buffers --- */
+    int *indices = (int *)malloc((size_t)train.n * sizeof(int));
+    int *y_pred_val = (int *)malloc((size_t)val.n * sizeof(int));
     int *y_pred_train = (int *)malloc((size_t)train.n * sizeof(int));
-    int *y_pred_test  = (int *)malloc((size_t)test.n  * sizeof(int));
+    int *y_pred_test = (int *)malloc((size_t)test.n * sizeof(int));
 
     if (!a1 || !a2 || !logits || !probs || !indices ||
-        !y_pred_val || !y_pred_train || !y_pred_test) {
+        !y_pred_val || !y_pred_train || !y_pred_test)
+    {
         fprintf(stderr, "[train_serial] OOM\n");
         exit(1);
     }
 
-    for (int i = 0; i < train.n; i++) indices[i] = i;
+    for (int i = 0; i < train.n; i++)
+        indices[i] = i;
 
     /* --- Training loop --- */
     Timer total_timer;
@@ -111,7 +120,8 @@ int main(int argc, char **argv) {
 
     float last_val_q3 = 0.0f;
 
-    for (int epoch = 1; epoch <= args.epochs; epoch++) {
+    for (int epoch = 1; epoch <= args.epochs; epoch++)
+    {
         /* Shuffle training indices (different seed per epoch) */
         shuf_seed((unsigned int)(args.seed + epoch));
         shuffle(indices, train.n);
@@ -121,13 +131,16 @@ int main(int argc, char **argv) {
         timer_start(&epoch_timer);
 
         /* Mini-batch SGD */
-        for (int b = 0; b < train.n; b += args.batch_size) {
+        for (int b = 0; b < train.n; b += args.batch_size)
+        {
             int actual = args.batch_size;
-            if (b + actual > train.n) actual = train.n - b;
+            if (b + actual > train.n)
+                actual = train.n - b;
 
             mlpgrad_zero(&g, &m);
 
-            for (int k = 0; k < actual; k++) {
+            for (int k = 0; k < actual; k++)
+            {
                 int idx = indices[b + k];
                 const float *x = train.X + (size_t)idx * train.feature_dim;
 
@@ -135,7 +148,8 @@ int main(int argc, char **argv) {
 
                 /* Accumulate cross-entropy loss */
                 float p_true = probs[train.y[idx]];
-                if (p_true < 1e-9f) p_true = 1e-9f;
+                if (p_true < 1e-9f)
+                    p_true = 1e-9f;
                 epoch_loss -= logf(p_true);
 
                 mlp_backward(&m, &g, x, a1, a2, probs, train.y[idx]);
@@ -154,7 +168,8 @@ int main(int argc, char **argv) {
 
         runlog_add_epoch(&log, epoch, avg_loss, val_q3, epoch_time);
 
-        if (args.verbose) {
+        if (args.verbose)
+        {
             printf("Epoch %3d  loss=%.4f  val_q3=%6.2f%%  lr=%.6f  %.2fs\n",
                    epoch, avg_loss, val_q3, args.lr, epoch_time);
         }
@@ -166,14 +181,14 @@ int main(int argc, char **argv) {
 
     /* --- Final evaluation --- */
     mlp_predict(&m, train.X, train.n, train.feature_dim, y_pred_train);
-    mlp_predict(&m, test.X,  test.n,  test.feature_dim,  y_pred_test);
+    mlp_predict(&m, test.X, test.n, test.feature_dim, y_pred_test);
 
     float train_q3 = compute_q3(train.y, y_pred_train, train.n);
-    float test_q3  = compute_q3(test.y,  y_pred_test,  test.n);
+    float test_q3 = compute_q3(test.y, y_pred_test, test.n);
     float per_class[3];
-    int   conf[3][3];
+    int conf[3][3];
     compute_per_class_accuracy(test.y, y_pred_test, test.n, per_class);
-    compute_confusion_matrix(test.y,  y_pred_test, test.n, conf);
+    compute_confusion_matrix(test.y, y_pred_test, test.n, conf);
 
     double total_s = timer_elapsed_s(&total_timer);
     runlog_finalize(&log, train_q3, last_val_q3, test_q3, per_class, conf, total_s);
@@ -188,8 +203,14 @@ int main(int argc, char **argv) {
     printf("total time = %.1f s\n", total_s);
 
     /* --- Cleanup --- */
-    free(a1); free(a2); free(logits); free(probs);
-    free(indices); free(y_pred_val); free(y_pred_train); free(y_pred_test);
+    free(a1);
+    free(a2);
+    free(logits);
+    free(probs);
+    free(indices);
+    free(y_pred_val);
+    free(y_pred_train);
+    free(y_pred_test);
     mlpgrad_free(&g);
     mlp_free(&m);
     dataset_free(&train);
