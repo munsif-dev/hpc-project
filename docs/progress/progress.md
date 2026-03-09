@@ -170,7 +170,7 @@ Training Time     : ~165 seconds
 Speedup           : 2.67×
 ```
 
-Parallel efficiency ≈ **66%**
+Parallel efficiency percentage ≈ **66%**
 
 ---
 
