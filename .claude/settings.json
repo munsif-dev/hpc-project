@@ -6,7 +6,8 @@
       "Bash(rmdir data/external data/interim data/metadata include/parallel include/preprocess include/utils src/preprocess src/utils results/exports results/logs results/tables scripts/benchmark scripts/cluster scripts/plot scripts/setup docs/design docs/experiments)",
       "Bash(rm -rf scripts/preprocess/__pycache__)",
       "Bash(make train_omp)",
-      "Bash(./train_serial --epochs 2 --verbose 1 --hidden1 256 --hidden2 128)"
+      "Bash(./train_serial --epochs 2 --verbose 1 --hidden1 256 --hidden2 128)",
+      "Bash(python3 -c \":*)"
     ],
     "additionalDirectories": [
       "/mnt/c/Users/Munzib/Desktop/7_SEM_Shared/_High_Performance_computing/hpc-project/results/serial"
