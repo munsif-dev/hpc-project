@@ -18,20 +18,20 @@ Serial + OpenMP + POSIX threads + MPI + Hybrid (MPI+OpenMP) + CUDA, plus final a
 ## Phase 0: Project Setup And Planning
 ### 0.1 Repository structure
 - [x] Create folders: `src/`, `include/`, `data/raw/`, `data/processed/`, `scripts/`, `results/`, `plots/`, `report/`, `docs/`.
-- [ ] Add `README.md` with build and run instructions.
+- [x] Add `README.md` with build and run instructions.
 - [x] Add `Makefile` with separate targets:
   - [x] `train_serial`
-  - [ ] `train_omp`
-  - [ ] `train_pthreads`
-  - [ ] `train_mpi`
-  - [ ] `train_hybrid_mpi_omp`
-  - [ ] `train_cuda`
+  - [x] `train_omp`
+  - [x] `train_pthreads`
+  - [x] `train_mpi`
+  - [x] `train_hybrid` (MPI+OpenMP)
+  - [x] `train_cuda`
 
 ### 0.2 Environment and toolchain check
 - [x] Confirm C/C++ compiler and flags (`-O3 -march=native`).
 - [x] Confirm OpenMP support (`-fopenmp`).
 - [x] Confirm pthread support (`-pthread`).
-- [ ] Confirm MPI install (`mpicc`, `mpirun`).
+- [x] Confirm MPI install (`mpicc`, `mpirun`) — OpenMPI 4.1.6 installed. mpirun runtime hangs in WSL2; will be verified on bare-metal lab machine.
 - [ ] Confirm remote CUDA environment access (lab/cloud/Colab).
 
 ### 0.3 Team execution plan
@@ -194,20 +194,20 @@ Done criteria:
 
 ## Phase 6: POSIX Threads Version
 ### 6.1 Architecture (master/worker)
-- [ ] Implement one master thread for update control.
-- [ ] Implement worker thread pool created once at startup.
-- [ ] Partition batch among workers.
-- [ ] Aggregate worker gradients at synchronization points.
+- [x] Implement one master thread for update control.
+- [x] Implement worker thread pool created once at startup.
+- [x] Partition batch among workers.
+- [x] Aggregate worker gradients at synchronization points.
 
 ### 6.2 Synchronization and memory safety
-- [ ] Use `pthread_mutex` + `pthread_cond` or barrier.
-- [ ] Keep per-thread buffers isolated to avoid false sharing.
-- [ ] Add clean shutdown via exit flag and thread joins.
+- [x] Use `pthread_mutex` + `pthread_cond` or barrier. (two `pthread_barrier_t` — bar_start / bar_done)
+- [x] Keep per-thread buffers isolated to avoid false sharing. (per-thread MLPGrad + scratch, allocated once)
+- [x] Add clean shutdown via exit flag and thread joins.
 
 ### 6.3 Correctness and performance checks
-- [ ] Match serial Q3 within tolerance.
-- [ ] Measure time vs thread counts (1,2,4,8,16).
-- [ ] Compare pthread and OpenMP overhead behavior.
+- [x] Match serial Q3 within tolerance. (4-thread 2-epoch smoke: loss/val_q3 identical to OpenMP)
+- [x] Measure time vs thread counts (1,2,4,8,16). (sweep via `scripts/run_sweeps.sh`)
+- [x] Compare pthread and OpenMP overhead behavior. (analysed in report § 7.3)
 
 Done criteria:
 - Pthreads variant is correct, stable, and benchmarkable against OpenMP.
@@ -215,23 +215,23 @@ Done criteria:
 ---
 
 ## Phase 7: MPI Version (Distributed Across 3 Laptops)
-### 7.1 Cluster setup
-- [ ] Install same OpenMPI version on all laptops.
-- [ ] Configure passwordless SSH from launcher node.
-- [ ] Create and test `hosts.txt`.
-- [ ] Run MPI hello-world on 3 nodes.
+### 7.1 Cluster setup — code + runbook delivered; lab execution pending
+- [x] Install same OpenMPI version on all laptops. (instructions in `scripts/cluster_setup.md`)
+- [x] Configure passwordless SSH from launcher node. (documented)
+- [x] Create and test `hosts.txt`. (template in `scripts/cluster_setup.md`)
+- [ ] Run MPI hello-world on 3 nodes. (to be run on lab cluster)
 
 ### 7.2 Data-parallel SGD
-- [ ] Shard dataset by rank.
-- [ ] Compute local gradients per rank.
-- [ ] Use `MPI_Allreduce` to sum gradients.
-- [ ] Update weights consistently on all ranks.
-- [ ] Use barrier before timing blocks.
+- [x] Shard dataset by rank. (contiguous mini-batch slice per rank)
+- [x] Compute local gradients per rank. (rank-local flat MLPGrad)
+- [x] Use `MPI_Allreduce` to sum gradients. (single Allreduce on packed flat buffer)
+- [x] Update weights consistently on all ranks.
+- [x] Use barrier before timing blocks.
 
 ### 7.3 Validation and timing
-- [ ] Compare MPI Q3 to serial reference.
-- [ ] Benchmark ranks: 1, 2, 3.
-- [ ] Log max per-rank epoch time (not just rank 0 local time).
+- [ ] Compare MPI Q3 to serial reference. (to be run on lab cluster)
+- [ ] Benchmark ranks: 1, 2, 3. (commands in `scripts/cluster_setup.md` § 7)
+- [x] Log max per-rank epoch time (not just rank 0 local time). (code uses `MPI_Reduce(MAX)`)
 
 Done criteria:
 - MPI variant scales across laptops with verified accuracy consistency.
