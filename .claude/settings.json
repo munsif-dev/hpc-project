@@ -7,7 +7,16 @@
       "Bash(rm -rf scripts/preprocess/__pycache__)",
       "Bash(make train_omp)",
       "Bash(./train_serial --epochs 2 --verbose 1 --hidden1 256 --hidden2 128)",
-      "Bash(python3 -c \":*)"
+      "Bash(python3 -c \":*)",
+      "Bash(mpirun -np 1 ./train_mpi --data data/processed/cb513/binary --epochs 2 --batch 64 --lr 0.01 --seed 42 --hidden1 256 --hidden2 128 --out results/mpi --verbose 1)",
+      "Bash(wait)",
+      "Bash(kill 170226 170720)",
+      "Bash(kill -9 170226 170720)",
+      "Bash(mpirun --oversubscribe -np 1 ./train_mpi --data data/processed/cb513/binary --epochs 2 --batch 64 --lr 0.01 --seed 42 --hidden1 256 --hidden2 128 --out results/mpi --verbose 1)",
+      "Bash(echo \"exit=$?\")",
+      "Read(//tmp/**)",
+      "Bash(kill -9 174494)",
+      "Bash(./train_mpi --data data/processed/cb513/binary --epochs 2 --batch 64 --lr 0.01 --seed 42 --hidden1 256 --hidden2 128 --out results/mpi --verbose 1)"
     ],
     "additionalDirectories": [
       "/mnt/c/Users/Munzib/Desktop/7_SEM_Shared/_High_Performance_computing/hpc-project/results/serial"

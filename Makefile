@@ -32,16 +32,25 @@ train_pthreads: $(COMMON_OBJS) src/pthreads/train.o
 	$(CC) $(CFLAGS) -pthread -o $@ $^ $(LDFLAGS)
 
 # MPI variant (requires OpenMPI)
+src/mpi/train.o: src/mpi/train.c
+	$(MPICC) $(CFLAGS) -c -o $@ $<
+
 train_mpi: $(COMMON_OBJS) src/mpi/train.o
 	$(MPICC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 # Hybrid MPI + OpenMP
+src/hybrid/train.o: src/hybrid/train.c
+	$(MPICC) $(CFLAGS) -fopenmp -c -o $@ $<
+
 train_hybrid: $(COMMON_OBJS) src/hybrid/train.o
 	$(MPICC) $(CFLAGS) -fopenmp -o $@ $^ $(LDFLAGS)
 
-# CUDA variant
+# CUDA variant (uses cuBLAS for GEMMs + custom kernels for activations)
+src/cuda/train.o: src/cuda/train.cu
+	$(NVCC) -O3 -Iinclude -c -o $@ $<
+
 train_cuda: $(COMMON_OBJS) src/cuda/train.o
-	$(NVCC) -O3 -Iinclude -o $@ $^ $(LDFLAGS)
+	$(NVCC) -O3 -Iinclude -o $@ $^ -lcublas $(LDFLAGS)
 
 # C test driver for Phase 3 verification
 test_metrics: $(COMMON_OBJS) tests/test_metrics.o
