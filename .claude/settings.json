@@ -19,7 +19,10 @@
       "Bash(./train_mpi --data data/processed/cb513/binary --epochs 2 --batch 64 --lr 0.01 --seed 42 --hidden1 256 --hidden2 128 --out results/mpi --verbose 1)",
       "Bash(make train_hybrid)",
       "Bash(pkill -9 train_mpi)",
-      "Bash(timeout 15 mpirun --oversubscribe -np 1 /tmp/hello_mpi)"
+      "Bash(timeout 15 mpirun --oversubscribe -np 1 /tmp/hello_mpi)",
+      "Bash(pkill -9 -f hello_mpi)",
+      "Bash(pkill -9 -f mpirun)",
+      "Bash(timeout 15 mpirun --mca btl self,vader --mca pml ob1 --oversubscribe -np 2 /tmp/hello_mpi)"
     ],
     "additionalDirectories": [
       "/mnt/c/Users/Munzib/Desktop/7_SEM_Shared/_High_Performance_computing/hpc-project/results/serial"
