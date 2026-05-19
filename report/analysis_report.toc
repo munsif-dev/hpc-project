@@ -1,0 +1,33 @@
+\contentsline {section}{\numberline {1}Introduction and Motivation}{1}{section.1}%
+\contentsline {section}{\numberline {2}Dataset and Preprocessing}{2}{section.2}%
+\contentsline {section}{\numberline {3}Serial Model and the $\mathrm {Q}_3$ Metric}{2}{section.3}%
+\contentsline {section}{\numberline {4}Parallel Designs}{3}{section.4}%
+\contentsline {subsection}{\numberline {4.1}OpenMP}{3}{subsection.4.1}%
+\contentsline {subsection}{\numberline {4.2}POSIX Threads}{3}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}MPI (Distributed Memory)}{4}{subsection.4.3}%
+\contentsline {subsection}{\numberline {4.4}Hybrid MPI + OpenMP}{4}{subsection.4.4}%
+\contentsline {subsection}{\numberline {4.5}CUDA}{5}{subsection.4.5}%
+\contentsline {section}{\numberline {5}Experimental Setup}{5}{section.5}%
+\contentsline {paragraph}{Shared-memory host (local).}{5}{section*.7}%
+\contentsline {paragraph}{Distributed cluster.}{6}{section*.8}%
+\contentsline {paragraph}{GPU host.}{6}{section*.9}%
+\contentsline {paragraph}{Fairness controls.}{6}{section*.10}%
+\contentsline {paragraph}{Measurement protocol.}{6}{section*.11}%
+\contentsline {section}{\numberline {6}Results}{6}{section.6}%
+\contentsline {subsection}{\numberline {6.1}Accuracy parity with the serial baseline}{6}{subsection.6.1}%
+\contentsline {subsection}{\numberline {6.2}Shared-memory scaling: OpenMP vs Pthreads}{6}{subsection.6.2}%
+\contentsline {subsection}{\numberline {6.3}Distributed-memory scaling: MPI}{7}{subsection.6.3}%
+\contentsline {subsection}{\numberline {6.4}Hybrid MPI + OpenMP}{8}{subsection.6.4}%
+\contentsline {subsection}{\numberline {6.5}GPU: CUDA}{9}{subsection.6.5}%
+\contentsline {section}{\numberline {7}Discussion}{10}{section.7}%
+\contentsline {subsection}{\numberline {7.1}Where scaling works well}{10}{subsection.7.1}%
+\contentsline {subsection}{\numberline {7.2}Where scaling plateaus}{10}{subsection.7.2}%
+\contentsline {subsection}{\numberline {7.3}Why OpenMP and Pthreads can differ}{11}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.4}Practical limits from our hardware}{11}{subsection.7.4}%
+\contentsline {section}{\numberline {8}Conclusion and Future Work}{11}{section.8}%
+\contentsline {section}{\numberline {A}Reproducibility}{11}{appendix.A}%
+\contentsline {paragraph}{Compile commands.}{11}{section*.17}%
+\contentsline {paragraph}{Runtime commands.}{12}{lstlisting.-2}%
+\contentsline {paragraph}{Machine and software versions.}{12}{section*.19}%
+\contentsline {paragraph}{Data provenance.}{12}{section*.20}%
+\contentsline {paragraph}{Cluster and GPU setup.}{12}{section*.21}%

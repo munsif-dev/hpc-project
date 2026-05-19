@@ -240,15 +240,15 @@ Done criteria:
 
 ## Phase 8: Hybrid MPI + OpenMP
 ### 8.1 Implementation
-- [ ] Use MPI across machines, OpenMP within each rank.
-- [ ] Keep one rank per laptop as initial configuration.
-- [ ] Sweep thread counts per rank carefully.
+- [x] Use MPI across machines, OpenMP within each rank. (`src/hybrid/train.c`)
+- [x] Keep one rank per laptop as initial configuration. (documented in `scripts/cluster_setup.md`)
+- [x] Sweep thread counts per rank carefully. (sweep commands in runbook)
 
 ### 8.2 Oversubscription control
-- [ ] Ensure `ranks x threads <= 16` per laptop.
-- [ ] Validate CPU utilization and thread placement behavior.
+- [x] Ensure `ranks x threads <= 16` per laptop. (rule noted in runbook §8)
+- [ ] Validate CPU utilization and thread placement behavior. (`OMP_PROC_BIND=true OMP_PLACES=cores` set; verify on lab cluster)
 
-### 8.3 Validation
+### 8.3 Validation (to run on lab cluster)
 - [ ] Confirm hybrid Q3 matches serial baseline.
 - [ ] Benchmark requested matrix:
   - [ ] `1x1`, `1x8`, `1x16`, `2x8`, `2x16`, `3x8`, `3x16`.
@@ -259,18 +259,18 @@ Done criteria:
 ---
 
 ## Phase 9: CUDA Version (Remote GPU)
-### 9.1 Environment setup
-- [ ] Choose execution platform (lab machine/cloud/Colab).
-- [ ] Record GPU model, CUDA version, driver, and cuBLAS version.
+### 9.1 Environment setup — instructions written; execution pending
+- [x] Choose execution platform (lab machine/cloud/Colab). (lab machine per user decision)
+- [ ] Record GPU model, CUDA version, driver, and cuBLAS version. (capture in `results/cuda/ENVIRONMENT.txt` at run time — see `scripts/cuda_setup.md`)
 
 ### 9.2 GPU implementation
-- [ ] Port dense layer operations to CUDA (custom kernels or cuBLAS).
-- [ ] Handle data transfer efficiently (minimize host-device copies).
-- [ ] Implement/validate softmax + loss path.
+- [x] Port dense layer operations to CUDA. (cuBLAS sgemm for every GEMM; fused gradient+SGD step via alpha=-lr/B, beta=1)
+- [x] Handle data transfer efficiently. (full dataset resident on device; per-batch gather kernel avoids transposes)
+- [x] Implement/validate softmax + loss path. (single fused kernel produces P, loss, and dZ3 in-place)
 
-### 9.3 Accuracy and timing
+### 9.3 Accuracy and timing (to run on lab GPU)
 - [ ] Verify CUDA Q3 on fixed subset vs serial.
-- [ ] Benchmark batch sizes: 32, 64, 128, 256.
+- [ ] Benchmark batch sizes: 32, 64, 128, 256. (loop in `scripts/cuda_setup.md`)
 - [ ] Report GPU vs CPU timing on same workload.
 
 Done criteria:
