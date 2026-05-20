@@ -31,8 +31,8 @@ Serial + OpenMP + POSIX threads + MPI + Hybrid (MPI+OpenMP) + CUDA, plus final a
 - [x] Confirm C/C++ compiler and flags (`-O3 -march=native`).
 - [x] Confirm OpenMP support (`-fopenmp`).
 - [x] Confirm pthread support (`-pthread`).
-- [x] Confirm MPI install (`mpicc`, `mpirun`) — OpenMPI 4.1.6 installed. mpirun runtime hangs in WSL2; will be verified on bare-metal lab machine.
-- [ ] Confirm remote CUDA environment access (lab/cloud/Colab).
+- [x] Confirm MPI install (`mpicc`, `mpirun`) — OpenMPI 5.0.8 available on the HPC host; one-rank and multi-rank smoke tests pass outside the Codex sandbox.
+- [x] Confirm CUDA environment access — RTX 5090 visible via `nvidia-smi` outside the Codex sandbox; CUDA runs must be launched from a shell with `/dev/nvidia*` access.
 
 ### 0.3 Team execution plan
 - [ ] Assign owners for modules:
@@ -214,12 +214,13 @@ Done criteria:
 
 ---
 
-## Phase 7: MPI Version (Distributed Across 3 Laptops)
-### 7.1 Cluster setup — code + runbook delivered; lab execution pending
+## Phase 7: MPI Version (Distributed-Memory Model)
+### 7.1 MPI setup — local HPC path selected; multi-laptop runbook optional
 - [x] Install same OpenMPI version on all laptops. (instructions in `scripts/cluster_setup.md`)
 - [x] Configure passwordless SSH from launcher node. (documented)
 - [x] Create and test `hosts.txt`. (template in `scripts/cluster_setup.md`)
-- [ ] Run MPI hello-world on 3 nodes. (to be run on lab cluster)
+- [x] Run local MPI smoke tests on the HPC host. (`mpirun -np 1`, `-np 2`, and `-np 4` verified)
+- [ ] Optional: Run MPI hello-world on 3 physical nodes if multi-laptop evidence is required.
 
 ### 7.2 Data-parallel SGD
 - [x] Shard dataset by rank. (contiguous mini-batch slice per rank)
@@ -229,60 +230,60 @@ Done criteria:
 - [x] Use barrier before timing blocks.
 
 ### 7.3 Validation and timing
-- [ ] Compare MPI Q3 to serial reference. (to be run on lab cluster)
-- [ ] Benchmark ranks: 1, 2, 3. (commands in `scripts/cluster_setup.md` § 7)
+- [ ] Compare MPI Q3 to serial reference. (80-epoch HPC run pending)
+- [ ] Benchmark ranks: 1,2,3,4,8,16 via `scripts/run_hpc_experiments.sh timing-cpu`.
 - [x] Log max per-rank epoch time (not just rank 0 local time). (code uses `MPI_Reduce(MAX)`)
 
 Done criteria:
-- MPI variant scales across laptops with verified accuracy consistency.
+- MPI variant scales across ranks with verified accuracy consistency.
 
 ---
 
 ## Phase 8: Hybrid MPI + OpenMP
 ### 8.1 Implementation
 - [x] Use MPI across machines, OpenMP within each rank. (`src/hybrid/train.c`)
-- [x] Keep one rank per laptop as initial configuration. (documented in `scripts/cluster_setup.md`)
+- [x] Keep local ranks on the HPC host as the primary configuration; one-rank-per-laptop remains documented in `scripts/cluster_setup.md`.
 - [x] Sweep thread counts per rank carefully. (sweep commands in runbook)
 
 ### 8.2 Oversubscription control
-- [x] Ensure `ranks x threads <= 16` per laptop. (rule noted in runbook §8)
-- [ ] Validate CPU utilization and thread placement behavior. (`OMP_PROC_BIND=true OMP_PLACES=cores` set; verify on lab cluster)
+- [x] Ensure `ranks x threads <= 32` on the HPC host. (encoded in the run plan)
+- [ ] Validate CPU utilization and thread placement behavior. (`OMP_PROC_BIND=true OMP_PLACES=cores` set; full timing run pending)
 
-### 8.3 Validation (to run on lab cluster)
+### 8.3 Validation
 - [ ] Confirm hybrid Q3 matches serial baseline.
 - [ ] Benchmark requested matrix:
-  - [ ] `1x1`, `1x8`, `1x16`, `2x8`, `2x16`, `3x8`, `3x16`.
+  - [ ] `1x1`, `1x8`, `1x16`, `1x24`, `2x4`, `2x8`, `4x4`, `4x8`, `8x2`, `8x4`.
 
 Done criteria:
 - Hybrid variant produces both correct results and an interpretable performance profile.
 
 ---
 
-## Phase 9: CUDA Version (Remote GPU)
-### 9.1 Environment setup — instructions written; execution pending
-- [x] Choose execution platform (lab machine/cloud/Colab). (lab machine per user decision)
-- [ ] Record GPU model, CUDA version, driver, and cuBLAS version. (capture in `results/cuda/ENVIRONMENT.txt` at run time — see `scripts/cuda_setup.md`)
+## Phase 9: CUDA Version (HPC RTX 5090)
+### 9.1 Environment setup
+- [x] Choose execution platform. (local HPC machine with RTX 5090)
+- [ ] Record GPU model, CUDA version, driver, and cuBLAS version. (capture in `results/cuda/ENVIRONMENT.txt` via `scripts/run_hpc_experiments.sh`)
 
 ### 9.2 GPU implementation
 - [x] Port dense layer operations to CUDA. (cuBLAS sgemm for every GEMM; fused gradient+SGD step via alpha=-lr/B, beta=1)
 - [x] Handle data transfer efficiently. (full dataset resident on device; per-batch gather kernel avoids transposes)
 - [x] Implement/validate softmax + loss path. (single fused kernel produces P, loss, and dZ3 in-place)
 
-### 9.3 Accuracy and timing (to run on lab GPU)
+### 9.3 Accuracy and timing
 - [ ] Verify CUDA Q3 on fixed subset vs serial.
-- [ ] Benchmark batch sizes: 32, 64, 128, 256. (loop in `scripts/cuda_setup.md`)
+- [ ] Benchmark batch sizes: 32, 64, 128, 256, 512. (via `scripts/run_hpc_experiments.sh timing-cuda`)
 - [ ] Report GPU vs CPU timing on same workload.
 
 Done criteria:
-- CUDA run is reproducible remotely and included in final comparison table.
+- CUDA run is reproducible on the HPC shell and included in final comparison table.
 
 ---
 
 ## Phase 10: Experiment Automation And Results Collection
 ### 10.1 Automation scripts
-- [ ] Create scripts to run all experiment sweeps without manual edits.
-- [ ] Standardize output naming (`variant_threads_seed_timestamp.json`).
-- [ ] Save raw timing logs and parsed summary CSV files.
+- [x] Create scripts to run all experiment sweeps without manual edits. (`scripts/run_hpc_experiments.sh`)
+- [x] Standardize output naming (`variant_threads_seed_timestamp.json`). (handled by shared logger)
+- [x] Save raw timing logs and parsed summary CSV files. (`scripts/make_plots.py` writes `plots/timing_summary.csv`)
 
 ### 10.2 Required experiment matrix
 - [ ] Accuracy table for:
@@ -295,9 +296,9 @@ Done criteria:
 - [ ] Timing sweeps:
   - [ ] OpenMP threads: 1,2,4,8,16
   - [ ] Pthreads threads: 1,2,4,8,16
-  - [ ] MPI ranks: 1,2,3
+  - [ ] MPI ranks: 1,2,3,4,8,16
   - [ ] Hybrid rank-thread combinations
-  - [ ] CUDA batch sizes: 32,64,128,256
+  - [ ] CUDA batch sizes: 32,64,128,256,512
 
 ### 10.3 Statistical reliability
 - [ ] Repeat each timing run at least 3 times.
@@ -322,7 +323,7 @@ Done criteria:
 - [ ] Where scaling improves and where it plateaus.
 - [ ] Overheads: synchronization, communication, thread management.
 - [ ] Why OpenMP and pthread results differ in your implementation.
-- [ ] Practical limits from hardware constraints (3 laptops, no local GPU).
+- [ ] Practical limits from hardware constraints (single-node MPI vs true multi-node, sandboxed CUDA access).
 
 Done criteria:
 - Every claim in report text is backed by a saved figure or table.
@@ -341,9 +342,10 @@ Done criteria:
 - [ ] Conclusion and future improvements.
 
 ### 12.2 Diagrams required for high marks
-- [ ] OpenMP data-parallel gradient + reduction flow.
-- [ ] Pthreads master/worker synchronization flow.
-- [ ] MPI/Hybrid diagram with ranks, threads, and `Allreduce`.
+- [x] OpenMP data-parallel gradient + reduction flow.
+- [x] Pthreads master/worker synchronization flow.
+- [x] MPI/Hybrid diagram with ranks, threads, and `Allreduce`.
+- [x] CUDA host/device dataflow diagram.
 
 ### 12.3 Reproducibility appendix
 - [ ] Compile commands and flags.

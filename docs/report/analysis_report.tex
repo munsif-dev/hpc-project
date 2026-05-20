@@ -33,7 +33,7 @@
   showstringspaces=false,
 }
 
-\graphicspath{{figures/}{../plots/}}
+\graphicspath{{figures/}{../../plots/}{plots/}}
 
 \title{\bfseries Parallel Protein Secondary Structure Prediction on CB513\\
        \large Serial, OpenMP, POSIX Threads, MPI, Hybrid, and CUDA\\
@@ -53,12 +53,13 @@ implementation with MPI, a hybrid MPI $+$ OpenMP version, and a CUDA
 implementation that offloads the whole training loop to the GPU. All
 variants share the same model code, the same CLI, and the same data split so
 that accuracy can be compared directly. The serial baseline reaches
-test $\mathrm{Q}_3 = 62.74\,\%$; every parallel variant matches this value
-within the expected floating-point tolerance, confirming correctness. We
-then measure per-epoch wall-clock time as a function of shared-memory thread
-count, MPI rank count, and CUDA batch size, discuss where each design
-scales well and where it plateaus, and relate the findings to the original
-Zhong et al.\ (2007) study from which the experimental setup is adapted.
+test $\mathrm{Q}_3 = 62.74\,\%$ and acts as the reference target for every
+parallel variant. We measure per-epoch wall-clock time as a function of
+shared-memory thread count, MPI rank count, hybrid rank/thread layout, and
+CUDA batch size, then discuss where each design scales well and where it
+plateaus. The final tables and figures in this report are generated from
+the JSON logs written by the binaries, not from manually typed timing
+values.
 \end{abstract}
 
 \tableofcontents
@@ -166,8 +167,8 @@ The $\mathrm{Q}_3$ metric, following Eq.~(19) of Zhong~et~al., is
        {N_{\text{total}}} \times 100\,\%.
 \end{equation}
 
-On our reference machine (Intel Core~i7-13620H, single core, GCC~13.3 with
-\texttt{-O3 -march=native}) the serial baseline achieves
+On the reference run (single CPU worker, GCC with \texttt{-O3
+-march=native}) the serial baseline achieves
 \[
   \boxed{\text{test}\ \mathrm{Q}_3 = 62.74\,\%} \qquad
   \text{total training time}\approx 441\,\mathrm{s}.
@@ -412,20 +413,27 @@ loop on the GPU. The design decisions are:
 %%======================================================================
 \section{Experimental Setup}\label{sec:setup}
 
-\paragraph{Shared-memory host (local).} Intel Core~i7-13620H (10~P-cores +
-6~E-cores, 16 logical threads with SMT), 64~GB DDR5, Ubuntu~24.04 on
-WSL~2, GCC~13.3 with \texttt{-O3 -march=native}.
+\paragraph{Execution host.} The final experiment host is the HPC desktop:
+Intel Core~i9-14900K, 24 physical cores / 32 logical CPUs, one NUMA node,
+Ubuntu Linux, GCC~15.2, and \texttt{-O3 -march=native}. This machine is
+used for serial, OpenMP, Pthreads, single-node MPI, and hybrid
+MPI+OpenMP runs.
 
-\paragraph{Distributed cluster.} Up to three laptops on the same LAN, each
-running the same Linux distribution and the same OpenMPI~4.1.6
-installation, with passwordless SSH from the launcher node. Exact setup
-steps are in \texttt{scripts/cluster\_setup.md}.
+\paragraph{MPI mode.} MPI is executed locally with multiple ranks on the
+same HPC host. This still exercises the distributed-memory programming
+model --- each rank owns a private address space and communicates only via
+MPI collectives --- while avoiding the unstable multi-laptop network path.
+The multi-laptop runbook remains in \texttt{scripts/cluster\_setup.md} as
+an optional extension if a true multi-node demonstration is required.
 
-\paragraph{GPU host.} A separate lab machine with an NVIDIA GPU, CUDA
-Toolkit~$\ge$~11.x, and cuBLAS (bundled). Exact GPU model, driver
-version, and CUDA version are captured per run in
-\texttt{results/cuda/ENVIRONMENT.txt}; see
-\texttt{scripts/cuda\_setup.md}.
+\paragraph{GPU host.} CUDA is run on the same HPC machine when launched
+from a shell that can access \texttt{/dev/nvidia*}. The detected GPU is an
+NVIDIA GeForce RTX~5090 with 32~GB VRAM, driver~595.71.05, and CUDA
+runtime support reported by \texttt{nvidia-smi}. The installed compiler is
+\texttt{nvcc}~12.4 and cuBLAS is linked by the \texttt{train\_cuda}
+target. Exact versions are captured in
+\texttt{results/environment/HPC\_ENVIRONMENT.txt} and
+\texttt{results/cuda/ENVIRONMENT.txt}.
 
 \paragraph{Fairness controls.}
 \begin{itemize}[noitemsep,topsep=2pt]
@@ -444,11 +452,13 @@ version, and CUDA version are captured per run in
 \paragraph{Measurement protocol.}
 \begin{itemize}[noitemsep,topsep=2pt]
   \item \textbf{Accuracy table} --- full 80-epoch run per variant at the
-        reference configuration.
-  \item \textbf{Timing sweep} --- 20-epoch run per configuration. Twenty
-        epochs is enough to amortise per-epoch variance while keeping the
-        total experimental budget manageable; per-epoch times are stable
-        to within a few percent across runs.
+        reference configuration. CPU variants must stay within
+        $\pm0.5$ percentage points of serial test $\mathrm{Q}_3$; CUDA is
+        accepted within $\pm1.0$ point because GPU reduction order differs.
+  \item \textbf{Timing sweep} --- 20-epoch run per configuration, repeated
+        three times. The reported timing value is the mean of the per-epoch
+        \texttt{epoch\_time\_s} values in the JSON log, with standard
+        deviation across repeated runs.
 \end{itemize}
 
 %%======================================================================
@@ -457,10 +467,12 @@ version, and CUDA version are captured per run in
 \subsection{Accuracy parity with the serial baseline}\label{sec:acc}
 
 Table~\ref{tab:acc} summarises the test $\mathrm{Q}_3$ reached by every
-variant at the reference configuration. CPU-side variants match the serial
-baseline within a few tenths of a percent; the CUDA variant can drift by
+variant at the reference configuration. Parallelism is expected to improve
+runtime, not accuracy: OpenMP, Pthreads, MPI, and Hybrid execute the same
+SGD update after summing private gradients, so their Q3 should match the
+serial trajectory within CPU floating-point tolerance. CUDA can drift by
 up to $\pm 1\%$ because cuBLAS fuses and reorders float reductions, which
-does not change the underlying algorithm but does change the per-weight
+does not change the underlying algorithm but can change the per-weight
 rounding trajectory.
 
 \begin{table}[H]
@@ -475,11 +487,11 @@ rounding trajectory.
     variant   & config            & test $\mathrm{Q}_3$ & $\Delta$ vs serial \\
     \midrule
     serial    & 1 thread          & \textbf{62.74\,\%}  & --- (reference)    \\
-    openmp    & 8 threads         & \textit{TBF}        & \textit{TBF}       \\
-    pthreads  & 8 threads         & \textit{TBF}        & \textit{TBF}       \\
-    mpi       & 3 ranks (cluster) & \textit{remote}     & \textit{remote}    \\
-    hybrid    & 3 ranks $\times$ 4 threads & \textit{remote} & \textit{remote}\\
-    cuda      & batch 64, GPU     & \textit{remote}     & \textit{remote}    \\
+    openmp    & 16 threads        & \textit{from CSV}   & \textit{from CSV}  \\
+    pthreads  & 16 threads        & \textit{from CSV}   & \textit{from CSV}  \\
+    mpi       & 4 ranks           & \textit{from CSV}   & \textit{from CSV}  \\
+    hybrid    & 4 ranks $\times$ 4 threads & \textit{from CSV} & \textit{from CSV}\\
+    cuda      & batch 64, RTX 5090 & \textit{from CSV}  & \textit{from CSV}  \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -527,17 +539,17 @@ We observe:
 
 \subsection{Distributed-memory scaling: MPI}\label{sec:mpires}
 
-Figure~\ref{fig:mpi_ranks} shows the per-epoch time for
-\(R=1,2,3\) ranks on the three-laptop cluster. The accuracy at every
-rank count is identical (to within the float tolerance in
+Figure~\ref{fig:mpi_ranks} shows the per-epoch time for local MPI rank
+counts on the HPC host. The accuracy at every rank count is identical
+(to within the float tolerance in
 Section~\ref{sec:acc}) because the $\mathrm{Allreduce(SUM)}$ reproduces
 the single-rank gradient exactly.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.6\textwidth]{time_vs_ranks_mpi.png}
-  \caption{MPI training time per epoch, cluster of three laptops on a
-  gigabit LAN (populated after the cluster run).}
+  \caption{MPI training time per epoch on the HPC host, using separate
+  MPI address spaces and \texttt{Allreduce} communication.}
   \label{fig:mpi_ranks}
 \end{figure}
 
@@ -550,9 +562,11 @@ $T_{\text{compute}}/T_{\text{net}}$.
 
 \subsection{Hybrid MPI + OpenMP}\label{sec:hybres}
 
-Figure~\ref{fig:hybrid} reports the requested hybrid configuration sweep
-(\(R\times T\in\{1{\times}1,1{\times}8,1{\times}16,2{\times}8,2{\times}16,
-3{\times}8,3{\times}16\}\)). The design motivation is that
+Figure~\ref{fig:hybrid} reports the hybrid configuration sweep on the HPC
+host. The tested layouts include
+\(1{\times}1,1{\times}8,1{\times}16,1{\times}24,2{\times}4,2{\times}8,
+4{\times}4,4{\times}8,8{\times}2,8{\times}4\), all constrained by
+\(R\cdot T\le32\). The design motivation is that
 \texttt{MPI\_Allreduce} is not used inside a node --- that work is
 off-loaded to OpenMP's thread-local reduction --- so only inter-node
 gradient exchange pays the network cost.
@@ -560,8 +574,7 @@ gradient exchange pays the network cost.
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.7\textwidth]{hybrid_heatmap.png}
-  \caption{Hybrid per-epoch time over the requested
-  \((R,T)\) matrix (populated after the cluster run).}
+  \caption{Hybrid per-epoch time over the local \((R,T)\) matrix.}
   \label{fig:hybrid}
 \end{figure}
 
@@ -572,13 +585,12 @@ wins when per-node cache pressure is the bottleneck.
 \subsection{GPU: CUDA}\label{sec:gpures}
 
 Figure~\ref{fig:cudares} plots per-epoch time against mini-batch size on
-the lab GPU.
+the RTX~5090.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.6\textwidth]{cuda_time_vs_batch.png}
-  \caption{CUDA training time per epoch vs mini-batch size (populated
-  after the GPU run).}
+  \caption{CUDA training time per epoch vs mini-batch size.}
   \label{fig:cudares}
 \end{figure}
 
@@ -609,9 +621,10 @@ single most important simplification in the design.
   add threads, the fixed reduction cost
   (\(\Theta(|\mathrm{params}|)\approx 250\,\mathrm{kfloats}\) per batch)
   consumes a growing share.
-  \item \textbf{Hyper-threading.} On the 13th-gen i7, 8\,$\to$\,16 threads
-  yields sub-linear speedup because SMT threads share execution units and
-  caches with their physical twin.
+  \item \textbf{Mixed CPU topology and SMT.} On the i9-14900K, scaling
+  changes as runs move from performance cores to efficiency cores and then
+  to SMT siblings. SMT threads share execution units and caches with
+  their physical twin, so the final scaling step is naturally sub-linear.
   \item \textbf{MPI \texttt{Allreduce} on LAN.} With
   \(\sim\,250\,\mathrm{kfloat}\times4\,\mathrm{B} = 1\,\mathrm{MB}\) per
   Allreduce, and several hundred batches per epoch, cumulative traffic is
@@ -645,14 +658,15 @@ differences come from \textbf{runtime overhead}:
 \subsection{Practical limits from our hardware}
 
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item No local GPU --- CUDA is verified on a lab machine.
-  \item Our three-laptop cluster is Wi-Fi / gigabit Ethernet, not
-  Infiniband, so MPI numbers are pessimistic relative to a production
-  HPC cluster.
-  \item WSL~2 introduces additional virtualisation overhead for OpenMPI's
-  TCP BTL (we observed MPI runtime hangs in WSL that did not reproduce on
-  bare-metal Linux), so the authoritative MPI numbers are the ones taken
-  on the lab cluster.
+  \item The MPI results are single-node multi-rank results. They validate
+  the distributed-memory code path, but do not include real network
+  latency between physical machines.
+  \item The CPU has mixed performance and efficiency cores. Scaling curves
+  should therefore be interpreted by core class: moving from P-cores to
+  E-cores and then to SMT threads naturally changes the slope.
+  \item CUDA must be launched from a shell that can see
+  \texttt{/dev/nvidia*}. Sandboxed shells may fail even when the host
+  terminal's \texttt{nvidia-smi} works.
 \end{itemize}
 
 %%======================================================================
@@ -660,13 +674,14 @@ differences come from \textbf{runtime overhead}:
 
 We implemented six data-parallel training variants of a CB513
 $\mathrm{Q}_3$ predictor using a shared model kernel and a unified CLI.
-All variants match the serial baseline within the expected floating-point
-tolerance, confirming correctness. Shared-memory variants scale
-near-linearly up to the P-core count and plateau on SMT threads; MPI
-scales inversely with rank count modulo the \texttt{Allreduce} cost; the
-hybrid scheme's best operating point depends on the ratio of network
-bandwidth to per-node compute; and CUDA achieves the lowest wall-clock
-time at large batch sizes.
+The final experiment workflow validates each variant against the serial
+baseline, then measures time-per-epoch scaling by changing only the
+parallelism knob: thread count for OpenMP/Pthreads, rank count for MPI,
+rank-thread layout for Hybrid, and batch size for CUDA. Shared-memory
+variants are expected to scale until core or memory bandwidth saturation;
+MPI and Hybrid are limited by the packed-gradient \texttt{Allreduce}; and
+CUDA should benefit most as batch size grows enough to amortise kernel
+launch overhead.
 
 Future improvements identified during the project but out of its scope:
 
@@ -699,17 +714,27 @@ make train_hybrid           # mpicc + -fopenmp
 make train_cuda             # nvcc + -lcublas
 \end{lstlisting}
 
-\paragraph{Runtime commands.}
+\paragraph{Runtime commands.} The recommended way to reproduce all
+experiments is the scripted workflow:
+\begin{lstlisting}
+bash scripts/run_hpc_experiments.sh smoke
+bash scripts/run_hpc_experiments.sh timing-cpu
+bash scripts/run_hpc_experiments.sh timing-cuda
+bash scripts/run_hpc_experiments.sh accuracy
+python3 scripts/make_plots.py
+\end{lstlisting}
+
+The underlying commands used by the script are:
 \begin{lstlisting}
 ./train_serial     --epochs 80 --batch 64 --seed 42 --out results/serial
-./train_omp        --epochs 80 --batch 64 --seed 42 --threads 8 --out results/openmp
-./train_pthreads   --epochs 80 --batch 64 --seed 42 --threads 8 --out results/pthreads
+./train_omp        --epochs 80 --batch 64 --seed 42 --threads 16 --out results/openmp
+./train_pthreads   --epochs 80 --batch 64 --seed 42 --threads 16 --out results/pthreads
 
-mpirun --hostfile scripts/hosts.txt -np 3 \
+mpirun -np 4 \
     ./train_mpi --epochs 80 --batch 64 --seed 42 --out results/mpi
 
 OMP_PROC_BIND=true OMP_PLACES=cores \
-mpirun --hostfile scripts/hosts.txt -np 3 \
+mpirun -np 4 \
     ./train_hybrid --threads 4 --epochs 80 --batch 64 --seed 42 \
                    --out results/hybrid
 
@@ -723,10 +748,11 @@ for the GPU, additionally in \texttt{results/cuda/ENVIRONMENT.txt}.
 \paragraph{Data provenance.} See \texttt{docs/data\_provenance.md} for
 exact URL, checksum, and download date of the CB513 distribution.
 
-\paragraph{Cluster and GPU setup.}
-\texttt{scripts/cluster\_setup.md} and \texttt{scripts/cuda\_setup.md}
-document the external-machine setup end-to-end (MPI install, passwordless
-SSH, hostfile, CUDA toolkit, \texttt{nvcc} build).
+\paragraph{Workflow diagrams.}
+Editable draw.io source is stored in
+\texttt{docs/diagrams/hpc\_workflows.drawio}. The report also includes
+TikZ versions of the main OpenMP, Pthreads, MPI, and CUDA workflows for
+self-contained PDF generation.
 
 %%======================================================================
 \begin{thebibliography}{9}
@@ -745,7 +771,7 @@ networks.} PNAS, 90:7558--7562, 1993.
 
 \bibitem{guideline} EE7218 / EC7207 Project Guideline, 2026 intake.
 
-\bibitem{ompiman} Open~MPI Project, version 4.1.6 user manual (2023).
+\bibitem{ompiman} Open~MPI Project, version 5.x user manual.
 \url{https://www.open-mpi.org/doc/v4.1/}
 
 \bibitem{cublas} NVIDIA cuBLAS Library documentation, CUDA Toolkit 12.x.

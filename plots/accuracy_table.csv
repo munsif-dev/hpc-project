@@ -1,0 +1,4 @@
+variant,epochs,threads,ranks,batch,repeat_count,test_q3,delta_vs_serial,accuracy_status,mean_epoch_s,std_epoch_s,mean_total_s
+serial,80,1,1,64,2,62.7403,0.0000,reference,5.9627,1.5622,539.2509
+openmp,80,4,1,64,2,59.2342,-3.5061,check,1.8732,0.6459,214.8998
+pthreads,20,16,1,64,1,62.3070,-0.4333,pass,1.5382,0.0000,46.4203

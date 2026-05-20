@@ -1,0 +1,154 @@
+<mxfile host="app.diagrams.net" modified="2026-05-20T00:00:00.000Z" agent="Codex" version="24.7.17" type="device">
+  <diagram id="preprocess" name="01 Preprocessing Pipeline">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="p1" value="Raw CB513&lt;br&gt;.all files" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="60" y="120" width="150" height="70" as="geometry"/></mxCell>
+        <mxCell id="p2" value="Parser&lt;br&gt;protein, residue, label" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="260" y="120" width="170" height="70" as="geometry"/></mxCell>
+        <mxCell id="p3" value="8-state to Q3&lt;br&gt;HGI to H, BE to E, else C" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="480" y="120" width="190" height="70" as="geometry"/></mxCell>
+        <mxCell id="p4" value="Sliding window&lt;br&gt;13 residues" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="720" y="120" width="150" height="70" as="geometry"/></mxCell>
+        <mxCell id="p5" value="One-hot encode&lt;br&gt;20 x 13 = 260 floats" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="920" y="120" width="180" height="70" as="geometry"/></mxCell>
+        <mxCell id="p6" value="Deterministic split&lt;br&gt;70 / 15 / 15" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="360" y="280" width="170" height="70" as="geometry"/></mxCell>
+        <mxCell id="p7" value="Binary tensors&lt;br&gt;train / val / test" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="620" y="280" width="170" height="70" as="geometry"/></mxCell>
+        <mxCell id="pe1" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="p1" target="p2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="pe2" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="p2" target="p3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="pe3" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="p3" target="p4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="pe4" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="p4" target="p5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="pe5" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="p5" target="p6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="pe6" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="p6" target="p7"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="serial" name="02 Serial Training Loop">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="s1" value="Shuffle train indices&lt;br&gt;seed + epoch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="80" y="120" width="170" height="70" as="geometry"/></mxCell>
+        <mxCell id="s2" value="Mini-batch&lt;br&gt;B samples" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="310" y="120" width="150" height="70" as="geometry"/></mxCell>
+        <mxCell id="s3" value="Forward pass&lt;br&gt;W1, W2, W3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="520" y="120" width="150" height="70" as="geometry"/></mxCell>
+        <mxCell id="s4" value="Backward pass&lt;br&gt;accumulate gradient g" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="730" y="120" width="170" height="70" as="geometry"/></mxCell>
+        <mxCell id="s5" value="SGD update&lt;br&gt;W = W - lr * g / B" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="960" y="120" width="170" height="70" as="geometry"/></mxCell>
+        <mxCell id="s6" value="Validation Q3&lt;br&gt;after each epoch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="420" y="300" width="170" height="70" as="geometry"/></mxCell>
+        <mxCell id="s7" value="Final test Q3&lt;br&gt;JSON log" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="660" y="300" width="170" height="70" as="geometry"/></mxCell>
+        <mxCell id="se1" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="s1" target="s2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="se2" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="s2" target="s3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="se3" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="s3" target="s4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="se4" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="s4" target="s5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="se5" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="s5" target="s6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="se6" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="s6" target="s7"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="openmp" name="03 OpenMP Shared Memory">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="o1" value="Shared model weights&lt;br&gt;read-only in parallel region" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="420" y="40" width="250" height="70" as="geometry"/></mxCell>
+        <mxCell id="o2" value="Mini-batch B" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="470" y="150" width="150" height="60" as="geometry"/></mxCell>
+        <mxCell id="o3" value="Thread 0&lt;br&gt;private grad g0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="170" y="270" width="170" height="70" as="geometry"/></mxCell>
+        <mxCell id="o4" value="Thread 1&lt;br&gt;private grad g1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="460" y="270" width="170" height="70" as="geometry"/></mxCell>
+        <mxCell id="o5" value="Thread T-1&lt;br&gt;private grad gT" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="750" y="270" width="170" height="70" as="geometry"/></mxCell>
+        <mxCell id="o6" value="Serial gradient reduction&lt;br&gt;g = sum(gt)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="420" y="430" width="250" height="70" as="geometry"/></mxCell>
+        <mxCell id="o7" value="One SGD update" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="470" y="560" width="150" height="60" as="geometry"/></mxCell>
+        <mxCell id="oe1" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="o1" target="o3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe2" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="o1" target="o4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe3" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="o1" target="o5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe4" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="o2" target="o3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe5" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="o2" target="o4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe6" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="o2" target="o5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe7" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="o3" target="o6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe8" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="o4" target="o6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe9" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="o5" target="o6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="oe10" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="o6" target="o7"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="pthreads" name="04 Pthreads Master Worker">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="t1" value="Master thread&lt;br&gt;publishes batch metadata" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="430" y="60" width="230" height="70" as="geometry"/></mxCell>
+        <mxCell id="t2" value="bar_start" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="470" y="170" width="150" height="50" as="geometry"/></mxCell>
+        <mxCell id="t3" value="Worker 0&lt;br&gt;private grad" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="170" y="270" width="170" height="70" as="geometry"/></mxCell>
+        <mxCell id="t4" value="Worker 1&lt;br&gt;private grad" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="460" y="270" width="170" height="70" as="geometry"/></mxCell>
+        <mxCell id="t5" value="Worker T-1&lt;br&gt;private grad" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="750" y="270" width="170" height="70" as="geometry"/></mxCell>
+        <mxCell id="t6" value="bar_done" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="470" y="400" width="150" height="50" as="geometry"/></mxCell>
+        <mxCell id="t7" value="Master reduces gradients&lt;br&gt;then updates weights" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="420" y="520" width="250" height="70" as="geometry"/></mxCell>
+        <mxCell id="te1" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="t1" target="t2"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="te2" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="t2" target="t3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="te3" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="t2" target="t4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="te4" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="t2" target="t5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="te5" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="t3" target="t6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="te6" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="t4" target="t6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="te7" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="t5" target="t6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="te8" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="t6" target="t7"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="mpi" name="05 MPI Distributed Memory">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="m1" value="Rank 0&lt;br&gt;batch slice, local g0" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="150" y="150" width="180" height="80" as="geometry"/></mxCell>
+        <mxCell id="m2" value="Rank 1&lt;br&gt;batch slice, local g1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="460" y="150" width="180" height="80" as="geometry"/></mxCell>
+        <mxCell id="m3" value="Rank R-1&lt;br&gt;batch slice, local gR" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="770" y="150" width="180" height="80" as="geometry"/></mxCell>
+        <mxCell id="m4" value="Pack flat gradient buffer&lt;br&gt;dW1, db1, dW2, db2, dW3, db3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="390" y="310" width="320" height="70" as="geometry"/></mxCell>
+        <mxCell id="m5" value="MPI_Allreduce SUM&lt;br&gt;one collective per batch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="410" y="450" width="280" height="70" as="geometry"/></mxCell>
+        <mxCell id="m6" value="Every rank applies&lt;br&gt;same SGD update" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="430" y="590" width="240" height="70" as="geometry"/></mxCell>
+        <mxCell id="me1" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="m1" target="m4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="me2" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="m2" target="m4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="me3" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="m3" target="m4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="me4" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="m4" target="m5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="me5" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="m5" target="m6"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="hybrid" name="06 Hybrid MPI OpenMP">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="h1" value="MPI rank 0&lt;br&gt;OpenMP threads split local slice" style="swimlane;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="120" y="100" width="260" height="190" as="geometry"/></mxCell>
+        <mxCell id="h2" value="MPI rank 1&lt;br&gt;OpenMP threads split local slice" style="swimlane;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="440" y="100" width="260" height="190" as="geometry"/></mxCell>
+        <mxCell id="h3" value="MPI rank R-1&lt;br&gt;OpenMP threads split local slice" style="swimlane;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="760" y="100" width="260" height="190" as="geometry"/></mxCell>
+        <mxCell id="h4" value="Thread-local gradients&lt;br&gt;within each rank" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="160" y="180" width="180" height="70" as="geometry"/></mxCell>
+        <mxCell id="h5" value="Thread-local gradients&lt;br&gt;within each rank" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="480" y="180" width="180" height="70" as="geometry"/></mxCell>
+        <mxCell id="h6" value="Thread-local gradients&lt;br&gt;within each rank" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="800" y="180" width="180" height="70" as="geometry"/></mxCell>
+        <mxCell id="h7" value="Intra-rank reduce&lt;br&gt;OpenMP serial sum" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="420" y="350" width="300" height="70" as="geometry"/></mxCell>
+        <mxCell id="h8" value="Cross-rank MPI_Allreduce&lt;br&gt;packed gradient buffer" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="420" y="480" width="300" height="70" as="geometry"/></mxCell>
+        <mxCell id="h9" value="Every rank updates weights" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="460" y="610" width="220" height="60" as="geometry"/></mxCell>
+        <mxCell id="he1" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="h4" target="h7"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he2" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="h5" target="h7"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he3" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="h6" target="h7"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he4" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="h7" target="h8"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="he5" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="h8" target="h9"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="cuda" name="07 CUDA GPU Workflow">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+        <mxCell id="c1" value="Host CPU&lt;br&gt;shuffle indices" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="80" y="120" width="180" height="70" as="geometry"/></mxCell>
+        <mxCell id="c2" value="GPU global memory&lt;br&gt;dataset and weights resident" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="390" y="70" width="290" height="80" as="geometry"/></mxCell>
+        <mxCell id="c3" value="Gather kernel&lt;br&gt;build column-major batch" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="430" y="210" width="220" height="70" as="geometry"/></mxCell>
+        <mxCell id="c4" value="Forward cuBLAS GEMMs&lt;br&gt;bias + ReLU kernels" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="410" y="340" width="260" height="70" as="geometry"/></mxCell>
+        <mxCell id="c5" value="Softmax + loss + dZ3&lt;br&gt;custom kernel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1"><mxGeometry x="420" y="470" width="240" height="70" as="geometry"/></mxCell>
+        <mxCell id="c6" value="Backward GEMMs&lt;br&gt;fused SGD update" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="420" y="600" width="240" height="70" as="geometry"/></mxCell>
+        <mxCell id="c7" value="Validation/test&lt;br&gt;copy weights for Q3" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="780" y="470" width="190" height="70" as="geometry"/></mxCell>
+        <mxCell id="ce1" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="c1" target="c3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ce2" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="c2" target="c3"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ce3" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="c3" target="c4"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ce4" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="c4" target="c5"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ce5" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="c5" target="c6"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="ce6" style="endArrow=block;html=1;rounded=0;" edge="1" parent="1" source="c6" target="c7"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
