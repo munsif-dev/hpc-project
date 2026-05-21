@@ -4,7 +4,7 @@
 /* JSON run-log for one training experiment.
  *
  * Naming convention for output files:
- *   results/<variant>/<variant>_t<threads>_s<seed>_<YYYYMMDD_HHMMSS>.json
+ *   results/<variant>/<variant>_r<ranks>_t<threads>_b<batch>_s<seed>_<YYYYMMDD_HHMMSS>.json
  *
  * Schema (all fields written by runlog_write):
  *   variant, seed, epochs, batch_size, learning_rate, hidden1, hidden2,
@@ -73,7 +73,8 @@ void runlog_finalize(RunLog *log, float train_q3, float val_q3, float test_q3,
                      const float per_class[3], const int conf[3][3],
                      double total_time_s);
 
-/* Write JSON log to out_dir/<variant>_t<threads>_s<seed>_<timestamp>.json.
+/* Write JSON log to
+ * out_dir/<variant>_r<ranks>_t<threads>_b<batch>_s<seed>_<timestamp>.json.
  * Creates out_dir if it does not exist. */
 void runlog_write(const RunLog *log, const char *out_dir);
 

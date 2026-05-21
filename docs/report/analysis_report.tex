@@ -33,7 +33,7 @@
   showstringspaces=false,
 }
 
-\graphicspath{{figures/}{../../plots/}{plots/}}
+\graphicspath{{figures/}{../../plots/}{plots/}{../diagrams/png/}}
 
 \title{\bfseries Parallel Protein Secondary Structure Prediction on CB513\\
        \large Serial, OpenMP, POSIX Threads, MPI, Hybrid, and CUDA\\
@@ -52,9 +52,10 @@ parallelisations (OpenMP and POSIX threads), a distributed-memory
 implementation with MPI, a hybrid MPI $+$ OpenMP version, and a CUDA
 implementation that offloads the whole training loop to the GPU. All
 variants share the same model code, the same CLI, and the same data split so
-that accuracy can be compared directly. The serial baseline reaches
-test $\mathrm{Q}_3 = 62.74\,\%$ and acts as the reference target for every
-parallel variant. We measure per-epoch wall-clock time as a function of
+that accuracy can be compared directly. In the final 80-epoch run, the
+serial baseline reaches test $\mathrm{Q}_3 = 59.28\,\%$ and acts as the
+reference target for every parallel variant. We measure per-epoch
+wall-clock time as a function of
 shared-memory thread count, MPI rank count, hybrid rank/thread layout, and
 CUDA batch size, then discuss where each design scales well and where it
 plateaus. The final tables and figures in this report are generated from
@@ -119,6 +120,16 @@ fixed seed:
         under \texttt{data/processed/cb513/binary/} for fast loading.
 \end{enumerate}
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{01_preprocessing_pipeline.png}
+  \caption{Preprocessing workflow exported from the draw.io project
+  diagram. Raw CB513 files are parsed, mapped from eight DSSP classes to
+  three Q3 classes, converted to sliding-window one-hot features, split,
+  and persisted as binary tensors for all training variants.}
+  \label{fig:preprocess_workflow}
+\end{figure}
+
 Final sample counts are summarised in Table~\ref{tab:data}. The class
 distribution is approximately $33\%\,H$ / $22\%\,E$ / $45\%\,C$ across every
 split, consistent with published statistics for CB513.
@@ -160,18 +171,30 @@ every comparison run is
   \(\mathrm{lr}=0.01\), \(\mathrm{seed}=42\).
 \end{center}
 
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{02_serial_training_loop.png}
+  \caption{Serial training-loop workflow exported from the draw.io project
+  diagram. Each mini-batch performs forward propagation, back-propagation,
+  one SGD update, validation logging, and final test evaluation.}
+  \label{fig:serial_workflow}
+\end{figure}
+
 The $\mathrm{Q}_3$ metric, following Eq.~(19) of Zhong~et~al., is
 \begin{equation}\label{eq:q3}
   \mathrm{Q}_3 \;=\;
   \frac{N^{\text{correct}}_H + N^{\text{correct}}_E + N^{\text{correct}}_C}%
        {N_{\text{total}}} \times 100\,\%.
 \end{equation}
+This project is a three-class classification problem, so Q3 accuracy is
+the appropriate serial-vs-parallel accuracy metric rather than a regression
+metric such as RMSE.
 
-On the reference run (single CPU worker, GCC with \texttt{-O3
+On the reference 80-epoch run (single CPU worker, GCC with \texttt{-O3
 -march=native}) the serial baseline achieves
 \[
-  \boxed{\text{test}\ \mathrm{Q}_3 = 62.74\,\%} \qquad
-  \text{total training time}\approx 441\,\mathrm{s}.
+  \boxed{\text{test}\ \mathrm{Q}_3 = 59.28\,\%} \qquad
+  \text{total training time}=236.8\,\mathrm{s}.
 \]
 All parallel variants are validated against this reference.
 
@@ -203,30 +226,11 @@ and calls \texttt{mlp\_sgd\_update} once.
 
 \begin{figure}[H]
   \centering
-  \begin{tikzpicture}[
-    node distance=8mm and 10mm,
-    box/.style={draw, rounded corners, align=center, minimum height=7mm, fill=blue!8},
-    ar/.style={-{Latex[length=2mm]}},
-  ]
-    \node[box] (b) {mini-batch of $B$ samples};
-    \node[box, below=of b] (split) {static partition across $T$ threads};
-    \node[box, below left=of split]  (t0) {thread $0$\\\scriptsize fwd/bwd $\to g_0$};
-    \node[box, below=of split]       (t1) {thread $1$\\\scriptsize fwd/bwd $\to g_1$};
-    \node[box, below right=of split] (tt) {thread $T{-}1$\\\scriptsize fwd/bwd $\to g_{T-1}$};
-    \node[box, below=18mm of t1, fill=green!10] (red) {serial reduce\\$g_0 \mathrel{{+}{=}} g_1+\cdots+g_{T-1}$};
-    \node[box, below=of red, fill=orange!20] (upd) {\texttt{mlp\_sgd\_update}($m,g_0,\mathrm{lr},B$)};
-    \draw[ar] (b)--(split);
-    \draw[ar] (split)--(t0);
-    \draw[ar] (split)--(t1);
-    \draw[ar] (split)--(tt);
-    \draw[ar] (t0)--(red);
-    \draw[ar] (t1)--(red);
-    \draw[ar] (tt)--(red);
-    \draw[ar] (red)--(upd);
-  \end{tikzpicture}
-  \caption{OpenMP data-parallel gradient-reduction flow. Model weights
-  are shared and read-only during the parallel region; each thread writes
-  only into its own gradient buffer.}
+  \includegraphics[width=\textwidth]{03_openmp_shared_memory.png}
+  \caption{OpenMP shared-memory workflow exported from the draw.io project
+  diagram. Model weights are shared and read-only during the parallel
+  region; each thread writes only to its own private gradient buffer before
+  the master performs one reduction and SGD update.}
   \label{fig:omp}
 \end{figure}
 
@@ -248,30 +252,11 @@ scratch; the partitioning inside a batch is contiguous, matching OpenMP's
 
 \begin{figure}[H]
   \centering
-  \begin{tikzpicture}[
-    node distance=10mm,
-    box/.style={draw, rounded corners, align=center, minimum width=42mm, minimum height=6mm, fill=blue!8},
-    act/.style={draw, rounded corners, align=center, minimum width=42mm, minimum height=6mm, fill=green!10},
-    bar/.style={draw, minimum width=52mm, minimum height=4mm, fill=orange!25},
-    ar/.style={-{Latex[length=2mm]}},
-  ]
-    % master column
-    \node[box] (m1) {\textbf{master}: zero \texttt{tgrads[*]}, publish $(b,\mathrm{actual})$};
-    \node[bar, below=3mm of m1] (b1) {\texttt{bar\_start} (master + workers)};
-    \node[act, below=3mm of b1] (w1) {\textbf{workers}: compute slice, \\ accumulate $g_t$, set \texttt{batch\_loss}};
-    \node[bar, below=3mm of w1] (b2) {\texttt{bar\_done} (master + workers)};
-    \node[box, below=3mm of b2] (m2) {\textbf{master}: reduce $g_t$, call \texttt{mlp\_sgd\_update}};
-    \node[box, below=3mm of m2, fill=gray!10] (loop) {next batch ($\uparrow$ to top)};
-
-    \draw[ar] (m1)--(b1);
-    \draw[ar] (b1)--(w1);
-    \draw[ar] (w1)--(b2);
-    \draw[ar] (b2)--(m2);
-    \draw[ar] (m2)--(loop);
-    \draw[ar,dashed] (loop.west) -- ++(-2,0) |- (m1.west);
-  \end{tikzpicture}
-  \caption{Pthreads master / worker synchronisation. Workers live for the
-  entire run; two barriers gate each mini-batch.}
+  \includegraphics[width=0.78\textwidth]{04_pthreads_master_worker.png}
+  \caption{Pthreads master/worker workflow exported from the draw.io
+  project diagram. Workers live for the entire run; two barriers gate each
+  mini-batch, and the master performs the gradient reduction and SGD
+  update after all workers finish their slices.}
   \label{fig:pth}
 \end{figure}
 
@@ -282,7 +267,9 @@ Shutdown is clean: the master sets an \texttt{exit\_flag}, trips
 \subsection{MPI (Distributed Memory)}\label{sec:mpi}
 
 The MPI variant (\texttt{src/mpi/train.c}) runs the same algorithm across
-\emph{multiple physical machines}. All ranks load the full dataset and
+multiple MPI ranks with separate address spaces. It can run across
+physical machines, but the final measurements in this report use local
+multi-rank execution on the HPC host. All ranks load the full dataset and
 initialise an identical model; because \texttt{mlp\_init} is
 deterministic under \texttt{--seed}, no explicit weight broadcast is
 needed. All ranks execute the same shuffle each epoch (same seed), so
@@ -303,26 +290,11 @@ rank~0.
 
 \begin{figure}[H]
   \centering
-  \begin{tikzpicture}[
-    node distance=5mm and 9mm,
-    box/.style={draw, rounded corners, align=center, minimum height=6mm, minimum width=30mm, fill=blue!8},
-    red/.style={draw, rounded corners, align=center, minimum height=7mm, minimum width=52mm, fill=orange!25},
-    upd/.style={draw, rounded corners, align=center, minimum height=6mm, minimum width=30mm, fill=green!15},
-    ar/.style={-{Latex[length=2mm]}},
-  ]
-    \node[box] (r0) {rank 0 slice\\\scriptsize fwd/bwd $\to g^{(0)}$};
-    \node[box, right=of r0] (r1) {rank 1 slice\\\scriptsize fwd/bwd $\to g^{(1)}$};
-    \node[box, right=of r1] (rR) {rank $R{-}1$ slice\\\scriptsize fwd/bwd $\to g^{(R-1)}$};
-    \node[red, below=of r1] (allred) {\texttt{MPI\_Allreduce(SUM)} on flat gradient buffer};
-    \node[upd, below=of allred] (upd) {every rank: \texttt{mlp\_sgd\_update}($m,g,\mathrm{lr},B$)};
-    \draw[ar] (r0)--(allred);
-    \draw[ar] (r1)--(allred);
-    \draw[ar] (rR)--(allred);
-    \draw[ar] (allred)--(upd);
-  \end{tikzpicture}
-  \caption{MPI data-parallel SGD with a single \texttt{Allreduce} over the
-  packed gradient buffer. This is also the outer level of the hybrid
-  variant (Section~\ref{sec:hybrid}).}
+  \includegraphics[width=0.78\textwidth]{05_mpi_distributed_memory.png}
+  \caption{MPI distributed-memory workflow exported from the draw.io
+  project diagram. Each rank owns a private model copy and local gradient;
+  one packed \texttt{MPI\_Allreduce(SUM)} synchronises the full gradient
+  before every rank applies the same SGD update.}
   \label{fig:mpi}
 \end{figure}
 
@@ -351,6 +323,17 @@ MPI calls, and indeed all our MPI collectives are \emph{outside} OpenMP
 regions. The oversubscription rule is
 \(\mathrm{ranks}\times\mathrm{threads} \le \mathrm{cores}\) per machine, and
 we pin with \verb|OMP_PROC_BIND=true OMP_PLACES=cores|.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.82\textwidth]{06_hybrid_mpi_openmp.png}
+  \caption{Hybrid MPI+OpenMP workflow exported from the draw.io project
+  diagram. MPI performs the outer distributed-memory decomposition across
+  ranks, OpenMP performs the inner shared-memory decomposition within each
+  rank, and only the rank-local reduced gradients enter the MPI
+  \texttt{Allreduce}.}
+  \label{fig:hybrid_workflow}
+\end{figure}
 
 \subsection{CUDA}\label{sec:cuda}
 
@@ -386,27 +369,11 @@ loop on the GPU. The design decisions are:
 
 \begin{figure}[H]
   \centering
-  \begin{tikzpicture}[
-    node distance=6mm and 10mm,
-    hst/.style={draw, rounded corners, align=center, minimum height=6mm, fill=blue!8},
-    dev/.style={draw, rounded corners, align=center, minimum height=6mm, fill=green!10},
-    krn/.style={draw, rounded corners, align=center, minimum height=6mm, fill=orange!15, font=\small},
-    ar/.style={-{Latex[length=2mm]}},
-  ]
-    \node[hst] (hdata) {host: shuffle $\to$ indices};
-    \node[dev, right=20mm of hdata] (dX) {device: $X_{\text{all}}$};
-    \node[krn, below=of dX] (gath) {\texttt{gather\_batch\_kernel}};
-    \node[krn, below=of gath] (fwd) {\texttt{sgemm} $\times$ 3, \texttt{bias\_relu}, \texttt{softmax\_xent\_grad}};
-    \node[krn, below=of fwd] (bwd) {\texttt{sgemm} (grad), \texttt{relu\_mask}, \texttt{sgemv} (bias)};
-    \node[dev, below=of bwd] (upd) {fused in-place weight update ($\alpha{=}-\mathrm{lr}/B$, $\beta{=}1$)};
-    \draw[ar] (hdata) -- node[above,font=\scriptsize]{\texttt{cudaMemcpy}} (dX.west);
-    \draw[ar] (dX)--(gath);
-    \draw[ar] (gath)--(fwd);
-    \draw[ar] (fwd)--(bwd);
-    \draw[ar] (bwd)--(upd);
-  \end{tikzpicture}
-  \caption{CUDA host/device dataflow. The host only shuffles indices and
-  orchestrates kernel launches; all tensors live on the GPU.}
+  \includegraphics[width=0.86\textwidth]{07_cuda_gpu_workflow.png}
+  \caption{CUDA GPU workflow exported from the draw.io project diagram.
+  The host shuffles indices and launches kernels, while the training data,
+  model tensors, cuBLAS operations, custom kernels, and in-place SGD
+  updates remain on the GPU.}
   \label{fig:cuda}
 \end{figure}
 
@@ -482,16 +449,16 @@ rounding trajectory.
   \mathrm{lr}{=}0.01, \mathrm{seed}{=}42\)). Numbers populated from
   \texttt{plots/accuracy\_table.csv}.}
   \label{tab:acc}
-  \begin{tabular}{lrlr}
+  \begin{tabular}{llrrr}
     \toprule
-    variant   & config            & test $\mathrm{Q}_3$ & $\Delta$ vs serial \\
+    variant   & config            & test $\mathrm{Q}_3$ & $\Delta$ vs serial & total time \\
     \midrule
-    serial    & 1 thread          & \textbf{62.74\,\%}  & --- (reference)    \\
-    openmp    & 16 threads        & \textit{from CSV}   & \textit{from CSV}  \\
-    pthreads  & 16 threads        & \textit{from CSV}   & \textit{from CSV}  \\
-    mpi       & 4 ranks           & \textit{from CSV}   & \textit{from CSV}  \\
-    hybrid    & 4 ranks $\times$ 4 threads & \textit{from CSV} & \textit{from CSV}\\
-    cuda      & batch 64, RTX 5090 & \textit{from CSV}  & \textit{from CSV}  \\
+    serial    & 1 thread          & \textbf{59.28\,\%}  & --- (reference) & 236.8\,s \\
+    openmp    & 16 threads        & 59.42\,\%           & +0.14 pp        & 95.0\,s  \\
+    pthreads  & 16 threads        & 59.23\,\%           & -0.06 pp        & 87.2\,s  \\
+    mpi       & 4 ranks           & 59.23\,\%           & -0.06 pp        & 85.8\,s  \\
+    hybrid    & 4 ranks $\times$ 4 threads & 59.30\,\% & +0.02 pp & 78.0\,s\\
+    cuda      & batch 64, RTX 5090 & 59.37\,\%          & +0.09 pp        & 6.3\,s   \\
     \bottomrule
   \end{tabular}
 \end{table}
@@ -518,23 +485,20 @@ single-threaded run of the same variant.
   reflects the hardware, not the API.}
 \end{figure}
 
-We observe:
+From \texttt{plots/timing\_summary.csv}, the 20-epoch timing sweep gives:
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item \textbf{Near-linear scaling up to the count of P-cores} (first
-  several doublings of the thread count).
-  \item \textbf{Sub-linear regime after P-cores are saturated} --- E-cores
-  contribute, but at lower IPC than P-cores, so the slope of the
-  speedup curve flattens.
-  \item \textbf{Sharp diminishing returns on SMT} going from 8 to 16
-  threads: two threads per physical core compete for the same execution
-  units and L1/L2, and the per-sample work
-  (one forward + backward through a $260\to256\to128\to3$ MLP) is already
-  fast enough that the per-batch reduction cost starts to dominate.
-  \item \textbf{OpenMP vs Pthreads:} both reach similar throughput at
-  steady state because they implement the same reduction strategy. OpenMP
-  benefits from a cached parallel team at low thread counts; Pthreads
-  catches up once the batch size per thread is large enough to amortise
-  barrier latency.
+  \item \textbf{OpenMP} improves from 2.687\,s/epoch at one thread to a
+  best 0.503\,s/epoch at eight threads, a $5.34\times$ speedup. Beyond
+  eight threads, runtime rises to 0.832\,s/epoch at 16 threads and
+  0.900\,s/epoch at 32 threads.
+  \item \textbf{Pthreads} improves from 2.696\,s/epoch at one thread to a
+  best 0.688\,s/epoch at eight threads, a $3.92\times$ speedup. The
+  persistent worker-pool design avoids thread creation overhead, but the
+  two-barrier dispatch still costs more than OpenMP's runtime team here.
+  \item \textbf{Diminishing returns after eight workers} are consistent
+  with the small MLP and per-batch gradient reduction cost: once each
+  worker has too little sample work, synchronisation and cache effects
+  dominate the useful forward/backward computation.
 \end{itemize}
 
 \subsection{Distributed-memory scaling: MPI}\label{sec:mpires}
@@ -553,12 +517,12 @@ the single-rank gradient exactly.
   \label{fig:mpi_ranks}
 \end{figure}
 
-Per-rank compute drops approximately~$1/R$, but the network cost of the
-per-batch \texttt{Allreduce} on the packed gradient buffer
-($\sim$\,250\,kfloats) is fixed. The crossover at which the network cost
-dominates the compute saving is a function of
-\(\mathrm{batch\_size}\) and the ratio
-$T_{\text{compute}}/T_{\text{net}}$.
+Per-rank compute drops approximately~$1/R$, but the collective
+synchronisation cost of the per-batch \texttt{Allreduce} on the packed
+gradient buffer ($\sim$\,250\,kfloats) is fixed. On this host, MPI improves
+from 2.677\,s/epoch at one rank to a best 0.427\,s/epoch at eight ranks
+($6.26\times$), then worsens to 0.729\,s/epoch at 16 ranks. This identifies
+eight local ranks as the useful MPI point for this model and batch size.
 
 \subsection{Hybrid MPI + OpenMP}\label{sec:hybres}
 
@@ -578,9 +542,13 @@ gradient exchange pays the network cost.
   \label{fig:hybrid}
 \end{figure}
 
-For a fixed total worker count \(R \cdot T\), keeping \(R\) small and
-\(T\) large should win when the LAN is the bottleneck; swapping the ratio
-wins when per-node cache pressure is the bottleneck.
+The fastest hybrid timing point is \(8\times2\) (eight MPI ranks, two
+OpenMP threads per rank), at 0.378\,s/epoch. This is faster than pure MPI
+at eight ranks (0.427\,s/epoch) and much faster than pure OpenMP at eight
+threads (0.503\,s/epoch), showing that the nested decomposition reduces
+per-rank sample work without pushing the OpenMP thread count into its
+slower high-thread regime. The 80-epoch accuracy run uses the more balanced
+\(4\times4\) layout and still matches serial within 0.02 percentage points.
 
 \subsection{GPU: CUDA}\label{sec:gpures}
 
@@ -594,11 +562,14 @@ the RTX~5090.
   \label{fig:cudares}
 \end{figure}
 
-Per-epoch time is expected to decrease with increasing batch size up to
-the point where the GPU becomes occupancy-bound, then flatten. Because
-our model is small, the kernel-launch overhead and the per-batch
-host$\to$device copy of the index list are the most likely next
-bottleneck once GEMM efficiency saturates.
+CUDA is the fastest implementation by a large margin. At the reference
+batch size 64 it runs at 0.0769\,s/epoch and completes the 80-epoch
+accuracy run in 6.3\,s, about $37.8\times$ faster than the serial
+80-epoch baseline. Larger batches reduce per-epoch time further
+(0.0401\,s at batch 128, 0.0223\,s at 256, and 0.0132\,s at 512), but
+they also change the optimisation path and reduce the 20-epoch test Q3
+from 62.28\,\% at batch 64 to 56.98\,\% at batch 512. For the accuracy
+comparison, batch 64 is therefore the fair CUDA setting.
 
 %%======================================================================
 \section{Discussion}\label{sec:discussion}
@@ -625,14 +596,15 @@ single most important simplification in the design.
   changes as runs move from performance cores to efficiency cores and then
   to SMT siblings. SMT threads share execution units and caches with
   their physical twin, so the final scaling step is naturally sub-linear.
-  \item \textbf{MPI \texttt{Allreduce} on LAN.} With
+  \item \textbf{MPI \texttt{Allreduce} overhead.} With
   \(\sim\,250\,\mathrm{kfloat}\times4\,\mathrm{B} = 1\,\mathrm{MB}\) per
-  Allreduce, and several hundred batches per epoch, cumulative traffic is
-  large on a gigabit link. We mitigated this by packing all six gradient
-  arrays into one flat buffer (one Allreduce per batch instead of six).
-  Further reduction would require gradient accumulation across batches
-  (changing the optimisation semantics) or overlap of Allreduce with the
-  next batch's forward pass.
+  Allreduce, and several hundred batches per epoch, collective overhead is
+  visible even on a single host. On multiple physical machines this same
+  cost would also include network latency. We mitigated it by packing all
+  six gradient arrays into one flat buffer (one Allreduce per batch instead
+  of six). Further reduction would require gradient accumulation across
+  batches (changing the optimisation semantics) or overlap of Allreduce
+  with the next batch's forward pass.
 \end{itemize}
 
 \subsection{Why OpenMP and Pthreads can differ}
@@ -680,8 +652,8 @@ parallelism knob: thread count for OpenMP/Pthreads, rank count for MPI,
 rank-thread layout for Hybrid, and batch size for CUDA. Shared-memory
 variants are expected to scale until core or memory bandwidth saturation;
 MPI and Hybrid are limited by the packed-gradient \texttt{Allreduce}; and
-CUDA should benefit most as batch size grows enough to amortise kernel
-launch overhead.
+CUDA delivers the largest speedup while preserving accuracy at the
+reference batch size.
 
 Future improvements identified during the project but out of its scope:
 
@@ -695,8 +667,8 @@ Future improvements identified during the project but out of its scope:
   precision margin.
   \item PSSM-based features (as in Zhong et al.) instead of pure
   one-hot --- orthogonal to parallelism but expected to lift the
-  absolute $\mathrm{Q}_3$ from 62.7\,\% into the 70\,+\,\% range reported
-  in the paper.
+  absolute $\mathrm{Q}_3$ substantially beyond the one-hot feature
+  baseline, into the 70\,+\,\% range reported in the paper.
 \end{itemize}
 
 %%======================================================================
@@ -750,9 +722,8 @@ exact URL, checksum, and download date of the CB513 distribution.
 
 \paragraph{Workflow diagrams.}
 Editable draw.io source is stored in
-\texttt{docs/diagrams/hpc\_workflows.drawio}. The report also includes
-TikZ versions of the main OpenMP, Pthreads, MPI, and CUDA workflows for
-self-contained PDF generation.
+\texttt{docs/diagrams/hpc\_workflows.drawio}. The exported PNG versions
+included in this report are stored under \texttt{docs/diagrams/png/}.
 
 %%======================================================================
 \begin{thebibliography}{9}

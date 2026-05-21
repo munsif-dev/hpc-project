@@ -139,6 +139,8 @@ def summarize_runs(runs_by_variant: dict[str, list[dict]]) -> list[dict]:
                 "mean_train_q3": mean(train_values) if train_values else None,
                 "mean_val_q3": mean(val_values) if val_values else None,
                 "mean_test_q3": mean(test_values) if test_values else None,
+                "latest_mtime": max(os.path.getmtime(run["file"]) for run in runs),
+                "latest_file": max(runs, key=lambda run: os.path.getmtime(run["file"]))["file"],
                 "files": ";".join(run["file"] for run in runs),
             }
         )
@@ -147,7 +149,7 @@ def summarize_runs(runs_by_variant: dict[str, list[dict]]) -> list[dict]:
 
 def write_csv(path: str, rows: list[dict], fields: list[str]) -> None:
     with open(path, "w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=fields)
+        writer = csv.DictWriter(handle, fieldnames=fields, lineterminator="\n")
         writer.writeheader()
         for row in rows:
             writer.writerow({field: row.get(field) for field in fields})
@@ -371,7 +373,7 @@ def write_accuracy_table(summary: list[dict]) -> list[dict]:
     for variant, rows in by_variant.items():
         max_epochs = max(row["epochs"] or 0 for row in rows)
         candidates = [row for row in rows if row["epochs"] == max_epochs]
-        selected[variant] = min(candidates, key=lambda row: row["mean_epoch_s"])
+        selected[variant] = max(candidates, key=lambda row: row["latest_mtime"])
 
     serial_q3 = selected.get("serial", {}).get("mean_test_q3")
     rows = []
@@ -445,6 +447,7 @@ def main() -> None:
         "mean_train_q3",
         "mean_val_q3",
         "mean_test_q3",
+        "latest_file",
         "files",
     ]
 

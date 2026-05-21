@@ -1,4 +1,4 @@
-Captured at: 2026-05-20 19:59:43
+Captured at: 2026-05-20 21:58:49
 
 == hostname ==
 blackbox-Z790-EAGLE-AX
@@ -18,7 +18,7 @@ Thread(s) per core:                      2
 Core(s) per socket:                      24
 Socket(s):                               1
 Stepping:                                1
-CPU(s) scaling MHz:                      88%
+CPU(s) scaling MHz:                      57%
 CPU max MHz:                             6000.0000
 CPU min MHz:                             800.0000
 BogoMIPS:                                6374.40
@@ -71,7 +71,7 @@ Cuda compilation tools, release 12.4, V12.4.131
 Build cuda_12.4.r12.4/compiler.34097967_0
 
 == nvidia-smi ==
-Wed May 20 19:59:43 2026       
+Wed May 20 21:58:49 2026       
 +-----------------------------------------------------------------------------------------+
 | NVIDIA-SMI 595.71.05              Driver Version: 595.71.05      CUDA Version: 13.2     |
 +-----------------------------------------+------------------------+----------------------+
@@ -80,7 +80,7 @@ Wed May 20 19:59:43 2026
 |                                         |                        |               MIG M. |
 |=========================================+========================+======================|
 |   0  NVIDIA GeForce RTX 5090        Off |   00000000:01:00.0  On |                  N/A |
-|  0%   44C    P8             24W /  575W |     458MiB /  32607MiB |      0%      Default |
+|  0%   44C    P8             23W /  575W |     444MiB /  32607MiB |      0%      Default |
 |                                         |                        |                  N/A |
 +-----------------------------------------+------------------------+----------------------+
 
@@ -89,8 +89,8 @@ Wed May 20 19:59:43 2026
 |  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
 |        ID   ID                                                               Usage      |
 |=========================================================================================|
-|    0   N/A  N/A            4142      G   /usr/bin/gnome-shell                    122MiB |
+|    0   N/A  N/A            4142      G   /usr/bin/gnome-shell                    121MiB |
 |    0   N/A  N/A            4617      G   /usr/bin/Xwayland                         9MiB |
 |    0   N/A  N/A           16810    C+G   /usr/bin/ptyxis                          50MiB |
-|    0   N/A  N/A           17046      G   /usr/share/code/code                    198MiB |
+|    0   N/A  N/A           17046      G   /usr/share/code/code                    185MiB |
 +-----------------------------------------------------------------------------------------+

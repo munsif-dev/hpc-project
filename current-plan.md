@@ -2,7 +2,9 @@
 
 ## Status
 
-This repo now contains all six implementations for the CB513 Q3 project:
+The fresh HPC experiment run is complete on `blackbox-Z790-EAGLE-AX`.
+
+Implemented binaries:
 
 - `train_serial`
 - `train_omp`
@@ -11,67 +13,65 @@ This repo now contains all six implementations for the CB513 Q3 project:
 - `train_hybrid`
 - `train_cuda`
 
-The serial/OpenMP/Pthreads result logs already exist. MPI, Hybrid, and CUDA still need complete 20-epoch timing sweeps and 80-epoch accuracy runs before the report can be finalized.
+Fresh generated artifacts:
 
-The project has moved from the old multi-laptop plan to a local HPC-first plan:
+- JSON run logs under `results/serial`, `results/openmp`, `results/pthreads`, `results/mpi`, `results/hybrid`, `results/cuda`, and `results/smoke`
+- Timing summary: `plots/timing_summary.csv`
+- Accuracy summary: `plots/accuracy_table.csv`
+- Plots:
+  - `plots/time_vs_threads.png`
+  - `plots/speedup_vs_threads.png`
+  - `plots/time_vs_ranks_mpi.png`
+  - `plots/hybrid_heatmap.png`
+  - `plots/cuda_time_vs_batch.png`
+- Report source updated with the fresh numbers: `docs/report/analysis_report.tex`
+
+## Host
 
 - CPU: Intel Core i9-14900K, 32 logical CPUs.
-- GPU: NVIDIA GeForce RTX 5090, visible from a normal shell via `nvidia-smi`.
-- MPI: run local multi-rank jobs on this HPC host first; keep multi-laptop MPI as optional backup/demo material.
-- CUDA: run from a shell that can access `/dev/nvidia*`; Codex sandboxed commands may not see the GPU.
-
-## Execution Order
-
-1. Run quick validation:
-   ```bash
-   bash scripts/run_hpc_experiments.sh smoke
-   ```
-
-2. Run CPU/MPI/Hybrid timing:
-   ```bash
-   bash scripts/run_hpc_experiments.sh timing-cpu
-   ```
-
-3. Run CUDA timing from a GPU-visible shell:
-   ```bash
-   bash scripts/run_hpc_experiments.sh timing-cuda
-   ```
-
-4. Run final 80-epoch accuracy:
-   ```bash
-   bash scripts/run_hpc_experiments.sh accuracy
-   ```
-
-5. Regenerate plots and summary CSV files:
-   ```bash
-   python3 scripts/make_plots.py
-   ```
-
-6. Finalize `docs/report/analysis_report.tex` by replacing placeholder values with generated values from:
-   - `plots/accuracy_table.csv`
-   - `plots/timing_summary.csv`
-   - `plots/*.png`
+- GPU: NVIDIA GeForce RTX 5090, visible via `nvidia-smi`.
+- MPI: Open MPI 5.0.8, run locally on this HPC host.
+- CUDA: `nvcc` 12.4, NVIDIA driver 595.71.05.
 
 ## Experiment Policy
 
-- Accuracy baseline: serial 80-epoch test Q3 is `62.7403%`.
-- CPU accuracy tolerance: within +/- `0.5` percentage points of serial.
-- CUDA accuracy tolerance: within +/- `1.0` point of serial.
-- Timing metric: mean `epoch_time_s` from JSON `epoch_log`; report standard deviation across repeated runs.
 - Timing sweeps use 20 epochs and 3 repeats.
 - Accuracy runs use 80 epochs and one representative configuration per variant.
+- Timing metric: mean `epoch_time_s` from JSON `epoch_log`; report standard deviation across repeated runs.
+- Accuracy baseline: serial 80-epoch test Q3 is `59.2814%`.
+- CPU accuracy tolerance: within +/- `0.5` percentage points of serial.
+- CUDA accuracy tolerance: within +/- `1.0` point of serial.
 
-## Report Artifacts
+## Key Results
 
-- Main report: `docs/report/analysis_report.tex`
-- Editable diagrams: `docs/diagrams/hpc_workflows.drawio`
-- Generated plots: `plots/*.png`
-- Generated tables: `plots/accuracy_table.csv`, `plots/timing_summary.csv`
+- Accuracy parity passes for all variants:
+  - serial: `59.2814%`
+  - OpenMP 16 threads: `59.4233%`
+  - Pthreads 16 threads: `59.2263%`
+  - MPI 4 ranks: `59.2263%`
+  - Hybrid 4 ranks x 4 threads: `59.2972%`
+  - CUDA batch 64: `59.3681%`
+- Best 20-epoch timing points:
+  - OpenMP: 8 threads, `0.5032 s/epoch`
+  - Pthreads: 8 threads, `0.6879 s/epoch`
+  - MPI: 8 ranks, `0.4274 s/epoch`
+  - Hybrid: 8 ranks x 2 threads, `0.3779 s/epoch`
+  - CUDA: batch 512, `0.0132 s/epoch`, but with lower Q3; batch 64 is used for fair accuracy comparison.
+- CUDA 80-epoch batch-64 run: `6.3 s` total, about `37.8x` faster than the serial 80-epoch baseline.
 
 ## Remaining Work
 
-- Run full experiment profiles.
-- Confirm CUDA smoke/accuracy outside the sandbox.
-- Generate final plots/tables.
-- Fill final numerical values into the report.
-- Compile the report PDF.
+- Compile `docs/report/analysis_report.tex` into PDF on a machine with LaTeX installed.
+- Optional: export `docs/diagrams/hpc_workflows.drawio` to image/PDF if the presentation needs separate diagram files.
+- Optional: do a final wording pass on the report after PDF compilation to check page breaks and figure placement.
+
+## Reproduction Commands
+
+```bash
+make train_serial train_omp train_pthreads train_mpi train_hybrid train_cuda
+bash scripts/run_hpc_experiments.sh smoke
+bash scripts/run_hpc_experiments.sh timing-cpu
+bash scripts/run_hpc_experiments.sh timing-cuda
+bash scripts/run_hpc_experiments.sh accuracy
+python3 scripts/make_plots.py
+```
