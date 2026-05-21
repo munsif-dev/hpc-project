@@ -1,0 +1,56 @@
+{
+  "variant": "cuda",
+  "seed": 42,
+  "epochs": 20,
+  "batch_size": 64,
+  "learning_rate": 0.010000,
+  "hidden1": 256,
+  "hidden2": 128,
+  "threads": 1,
+  "mpi_ranks": 1,
+  "data_path": "data/processed/cb513/binary",
+  "n_train": 58363,
+  "n_val": 13064,
+  "n_test": 12692,
+  "feature_dim": 260,
+  "num_classes": 3,
+  "hardware": {
+    "hostname": "blackbox-Z790-EAGLE-AX",
+    "compiler": "nvcc",
+    "flags": "-O3"
+  },
+  "epoch_log": [
+    {"epoch": 1, "train_loss": 1.050015, "val_q3": 48.5762, "epoch_time_s": 0.0823},
+    {"epoch": 2, "train_loss": 0.987387, "val_q3": 54.2024, "epoch_time_s": 0.0761},
+    {"epoch": 3, "train_loss": 0.929763, "val_q3": 57.6546, "epoch_time_s": 0.0771},
+    {"epoch": 4, "train_loss": 0.892385, "val_q3": 59.3769, "epoch_time_s": 0.0760},
+    {"epoch": 5, "train_loss": 0.871827, "val_q3": 60.2802, "epoch_time_s": 0.0772},
+    {"epoch": 6, "train_loss": 0.859926, "val_q3": 60.7624, "epoch_time_s": 0.0777},
+    {"epoch": 7, "train_loss": 0.852038, "val_q3": 60.7165, "epoch_time_s": 0.0772},
+    {"epoch": 8, "train_loss": 0.846544, "val_q3": 60.9385, "epoch_time_s": 0.0762},
+    {"epoch": 9, "train_loss": 0.841806, "val_q3": 61.2293, "epoch_time_s": 0.0766},
+    {"epoch": 10, "train_loss": 0.837590, "val_q3": 61.1987, "epoch_time_s": 0.0760},
+    {"epoch": 11, "train_loss": 0.834075, "val_q3": 61.3595, "epoch_time_s": 0.0767},
+    {"epoch": 12, "train_loss": 0.830564, "val_q3": 61.6656, "epoch_time_s": 0.0778},
+    {"epoch": 13, "train_loss": 0.827324, "val_q3": 61.7728, "epoch_time_s": 0.0777},
+    {"epoch": 14, "train_loss": 0.824028, "val_q3": 61.4283, "epoch_time_s": 0.0776},
+    {"epoch": 15, "train_loss": 0.820808, "val_q3": 61.6197, "epoch_time_s": 0.0774},
+    {"epoch": 16, "train_loss": 0.817999, "val_q3": 61.5891, "epoch_time_s": 0.0777},
+    {"epoch": 17, "train_loss": 0.814767, "val_q3": 61.9489, "epoch_time_s": 0.0778},
+    {"epoch": 18, "train_loss": 0.811518, "val_q3": 61.8647, "epoch_time_s": 0.0774},
+    {"epoch": 19, "train_loss": 0.808021, "val_q3": 61.7269, "epoch_time_s": 0.0777},
+    {"epoch": 20, "train_loss": 0.804967, "val_q3": 61.8417, "epoch_time_s": 0.0779}
+  ],
+  "final": {
+    "train_q3": 64.8133,
+    "val_q3": 61.8417,
+    "test_q3": 62.2833,
+    "per_class_accuracy": {"H": 59.8618, "E": 46.0401, "C": 72.9120},
+    "confusion_matrix": [
+      [2686, 589, 1212],
+      [589, 1308, 944],
+      [841, 612, 3911]
+    ],
+    "total_time_s": 1.5795
+  }
+}
