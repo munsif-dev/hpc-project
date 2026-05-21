@@ -4,17 +4,18 @@
 
 \documentclass[11pt,a4paper]{article}
 
-\usepackage[margin=1in]{geometry}
+\usepackage[margin=1in,headheight=22pt]{geometry}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
+\usepackage{microtype}
 \usepackage{amsmath,amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{array}
+\usepackage{tabularx}
 \usepackage{multirow}
 \usepackage{caption}
-\usepackage{subcaption}
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{tikz}
@@ -22,6 +23,12 @@
 \usepackage[hidelinks]{hyperref}
 \usepackage{float}
 \usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+
+\definecolor{ReportBlue}{HTML}{1D4ED8}
+\definecolor{ReportSlate}{HTML}{334155}
+\definecolor{ReportRule}{HTML}{CBD5E1}
 
 \lstset{
   basicstyle=\ttfamily\footnotesize,
@@ -33,40 +40,99 @@
   showstringspaces=false,
 }
 
+\captionsetup{
+  font=small,
+  labelfont=bf,
+  justification=justified,
+  singlelinecheck=false,
+  skip=6pt
+}
+\setlist{itemsep=2pt,topsep=4pt,leftmargin=1.5em}
+\setlength{\parskip}{0.35em}
+\setlength{\parindent}{0pt}
+\renewcommand{\arraystretch}{1.12}
+\titleformat{\section}
+  {\Large\bfseries\color{ReportSlate}}
+  {\thesection}{0.8em}{}
+\titleformat{\subsection}
+  {\large\bfseries\color{ReportSlate}}
+  {\thesubsection}{0.8em}{}
+\titlespacing*{\section}{0pt}{1.4em}{0.65em}
+\titlespacing*{\subsection}{0pt}{1.0em}{0.45em}
+
+\pagestyle{fancy}
+\fancyhf{}
+\lhead{\small Parallel MLP Training}
+\rhead{\small Group 36}
+\cfoot{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{ReportRule}\leaders\hrule height \headrulewidth\hfill}}
+
 \graphicspath{{figures/}{../../plots/}{plots/}{../diagrams/png/}}
 
-\title{\bfseries Parallel Protein Secondary Structure Prediction on CB513\\
-       \large Serial, OpenMP, POSIX Threads, MPI, Hybrid, and CUDA\\
-       \normalsize EE7218 / EC7207 — High Performance Computing Project}
-\author{Your Name Here \\ \small Module: EE7218 / EC7207}
-\date{\today}
+\newcommand{\reporttitle}{Parallel Training of an MLP Neural Network for Protein Secondary Structure Classification}
+\newcommand{\reportsubtitle}{A CB513 Evaluation Using Serial, OpenMP, POSIX Threads, MPI, Hybrid MPI+OpenMP, and CUDA}
+\newcommand{\reportcourse}{EE7218 / EC7207 --- High Performance Computing Project}
+\newcommand{\reportgroup}{Group 36}
+\newcommand{\reportdate}{\today}
+
+\hypersetup{
+  pdftitle={\reporttitle},
+  pdfauthor={Group 36},
+  pdfsubject={High Performance Computing Project Report}
+}
 
 \begin{document}
-\maketitle
+\pagenumbering{roman}
+\hypersetup{pageanchor=false}
+\begin{titlepage}
+  \thispagestyle{empty}
+  \centering
+  \vspace*{0.9cm}
+  {\large\color{ReportSlate}\reportcourse\par}
+  \vspace{1.35cm}
+  {\LARGE\bfseries\reporttitle\par}
+  \vspace{0.45cm}
+  {\large\color{ReportSlate}\reportsubtitle\par}
+  \vspace{0.75cm}
+  {\color{ReportBlue}\rule{0.78\textwidth}{1.2pt}\par}
+  \vspace{0.85cm}
+  {\Large\bfseries \reportgroup\par}
+  \vspace{0.35cm}
+  {\normalsize
+    EG/2021/4684 MUNSIF M.F.A.\\
+    EG/2021/4685 MUTHUKUMARI H.M.S.\\
+    EG/2021/4686 NADHA M.J.\par}
+  \vfill
+  \begin{minipage}{0.86\textwidth}
+    \small
+    \textbf{Abstract}\par\medskip
+    We implement and evaluate six variants of the training loop for a
+    compact multi-layer perceptron (MLP) that classifies per-residue
+    secondary structure ($\mathrm{Q}_3$) on the CB513 benchmark: a serial
+    baseline, two shared-memory parallelisations (OpenMP and POSIX
+    threads), a distributed-memory implementation with MPI, a hybrid MPI
+    $+$ OpenMP version, and a CUDA implementation that offloads the whole
+    training loop to the GPU. All variants share the same model, command
+    interface, and data split so that accuracy can be compared directly.
+    In the final 80-epoch run, the serial baseline reaches test
+    $\mathrm{Q}_3 = 59.28\,\%$ and acts as the reference target for every
+    parallel variant. We measure per-epoch wall-clock time as a function
+    of shared-memory thread count, MPI rank count, hybrid rank/thread
+    layout, and CUDA batch size, then discuss where each design scales well
+    and where it plateaus.
+  \end{minipage}
+  \vfill
+  {\large\reportdate\par}
+\end{titlepage}
 
-\begin{abstract}
-We implement and evaluate six variants of the training loop for a compact
-multi-layer perceptron (MLP) that predicts per-residue secondary structure
-($\mathrm{Q}_3$) on the CB513 benchmark: a serial baseline, two shared-memory
-parallelisations (OpenMP and POSIX threads), a distributed-memory
-implementation with MPI, a hybrid MPI $+$ OpenMP version, and a CUDA
-implementation that offloads the whole training loop to the GPU. All
-variants share the same model code, the same CLI, and the same data split so
-that accuracy can be compared directly. In the final 80-epoch run, the
-serial baseline reaches test $\mathrm{Q}_3 = 59.28\,\%$ and acts as the
-reference target for every parallel variant. We measure per-epoch
-wall-clock time as a function of
-shared-memory thread count, MPI rank count, hybrid rank/thread layout, and
-CUDA batch size, then discuss where each design scales well and where it
-plateaus. The final tables and figures in this report are generated from
-the JSON logs written by the binaries, not from manually typed timing
-values.
-\end{abstract}
-
+\clearpage
+\hypersetup{pageanchor=true}
+\setcounter{page}{1}
+\thispagestyle{plain}
 \tableofcontents
-\bigskip
-\hrule
-\bigskip
+\clearpage
+\pagenumbering{arabic}
 
 %%======================================================================
 \section{Introduction and Motivation}\label{sec:intro}
@@ -84,49 +150,43 @@ hardware \emph{and} extend the parallelisation strategies to distributed
 memory (MPI), a hybrid shared/distributed scheme, and GPU acceleration
 (CUDA).
 
-The project deliverables, as specified in the course
-guideline~\cite{guideline}, are: (1)~serial code, (2)~shared-memory
-programming code, (3)~distributed-memory programming code, (4)~hybrid
-programming code, and (5)~an analysis report that (a)~includes a diagram
-and a description of how parallel programming concepts are applied,
-(b)~compares accuracy of the parallel implementations against the serial
-reference, and (c)~measures timing of the serial and parallel coding by
-varying the number of threads and other parameters. This document fulfils
-requirement~(5). CUDA is beyond the minimum requirement but is included to
-exercise every parallel technology mentioned in the technology-usage list
-of the guideline.
+The report focuses on three evaluation questions: how each parallel
+programming concept is applied to the neural-network training loop, whether
+the parallel versions preserve the serial prediction accuracy, and how
+runtime changes as the thread count, rank count, hybrid layout, or CUDA
+batch size is varied. CUDA is included as an additional GPU implementation
+because the final experiments were completed for it.
 
 %%======================================================================
 \section{Dataset and Preprocessing}\label{sec:data}
 
 We use the CB513 benchmark of Cuff \& Barton~\cite{cuff1999}, a curated
 set of $513$ non-homologous protein domains (${\sim}84\,000$~residues). The
-processing pipeline lives in \texttt{scripts/} and is deterministic under a
-fixed seed:
+processing pipeline is deterministic under a fixed seed:
 
 \begin{enumerate}[noitemsep,topsep=2pt]
-  \item \textbf{Download} (\texttt{download\_cb513.sh}) --- fetches the
-        canonical distribution tarball.
+  \item \textbf{Download} --- fetches the canonical distribution tarball.
   \item \textbf{Parse} --- extracts \texttt{(protein\_id, residue,
         8-state-label)} tuples from the raw \texttt{.all} files.
-  \item \textbf{8$\to$3 collapse} (matching Zhong~et~al.\ §4):
+  \item \textbf{8$\to$3 collapse} --- DSSP labels are collapsed to Q3
+        using the mapping described in~\cite{zhong2007}:
         \(H,G,I \to H\); \(B,E \to E\); everything else $\to C$.
   \item \textbf{Sliding window} of size~$13$ with flat-edge padding,
         one-hot encoded over the $20$ amino-acid classes, giving an
         input vector of dimension \(20 \times 13 = 260\).
-  \item \textbf{Split} --- fixed 70/15/15 train/validation/test (indices
-        persisted to \texttt{data/processed/cb513/splits/fixed\_split.json}).
+  \item \textbf{Split} --- fixed 70/15/15 train/validation/test; split indices
+        are persisted with the processed dataset metadata.
   \item \textbf{Binary persistence} --- the final tensors are serialised
-        under \texttt{data/processed/cb513/binary/} for fast loading.
+        under the processed CB513 binary-data directory for fast loading.
 \end{enumerate}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{01_preprocessing_pipeline.png}
-  \caption{Preprocessing workflow exported from the draw.io project
-  diagram. Raw CB513 files are parsed, mapped from eight DSSP classes to
-  three Q3 classes, converted to sliding-window one-hot features, split,
-  and persisted as binary tensors for all training variants.}
+  \caption{Preprocessing workflow. Raw CB513 files are parsed, mapped from
+  eight DSSP classes to three Q3 classes, converted to sliding-window
+  one-hot features, split, and persisted as binary tensors for all
+  training variants.}
   \label{fig:preprocess_workflow}
 \end{figure}
 
@@ -137,15 +197,15 @@ split, consistent with published statistics for CB513.
 \begin{table}[H]
   \centering
   \caption{Dataset splits after preprocessing.}\label{tab:data}
-  \begin{tabular}{lrrrr}
+  \begin{tabular*}{0.88\textwidth}{@{\extracolsep{\fill}}lrrrr@{}}
     \toprule
-    split & proteins & residues (samples) & feature dim & classes\\
+    Split & Proteins & Residues (samples) & Feature dim & Classes\\
     \midrule
     train & 359 & 58\,363 & 260 & 3\\
     val   &  77 & 13\,064 & 260 & 3\\
     test  &  77 & 12\,692 & 260 & 3\\
     \bottomrule
-  \end{tabular}
+  \end{tabular*}
 \end{table}
 
 %%======================================================================
@@ -174,9 +234,9 @@ every comparison run is
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{02_serial_training_loop.png}
-  \caption{Serial training-loop workflow exported from the draw.io project
-  diagram. Each mini-batch performs forward propagation, back-propagation,
-  one SGD update, validation logging, and final test evaluation.}
+  \caption{Serial training-loop workflow. Each mini-batch performs forward
+  propagation, back-propagation, one SGD update, validation logging, and
+  final test evaluation.}
   \label{fig:serial_workflow}
 \end{figure}
 
@@ -201,10 +261,10 @@ All parallel variants are validated against this reference.
 %%======================================================================
 \section{Parallel Designs}\label{sec:designs}
 
-Every variant reuses the model code in \texttt{src/models/mlp.c} unchanged.
-The variants differ only in how the mini-batch is partitioned among
-workers and how their per-worker gradients are combined before the SGD
-update. A single rule holds across all designs:
+Every variant trains the same MLP and uses the same mini-batch SGD
+semantics. The variants differ only in how the mini-batch is partitioned
+among workers and how their per-worker gradients are combined before the
+SGD update. A single rule holds across all designs:
 
 \begin{quote}
 \textit{Model weights are \textbf{read-only} during the parallel region.
@@ -215,22 +275,19 @@ all locking on the weight matrices.}
 
 \subsection{OpenMP}\label{sec:openmp}
 
-The OpenMP variant (\texttt{src/openmp/train.c}) pre-allocates one
-\texttt{MLPGrad} plus per-sample scratch (\texttt{a1, a2, logits, probs})
-per thread and reuses them every batch. The batch loop is wrapped in
-\verb|#pragma omp parallel| and \verb|#pragma omp for schedule(static)|
-partitions the batch samples contiguously across threads. Loss is
-aggregated with \verb|reduction(+:batch_loss)|. After the parallel region
-the master serially reduces per-thread gradients into thread~0's buffer
-and calls \texttt{mlp\_sgd\_update} once.
+The OpenMP variant uses shared-memory data parallelism. The model weights
+are shared but read-only while a mini-batch is split across threads. Each
+thread computes forward and backward passes for its slice, writes private
+gradients, and then the master thread reduces those gradients and applies
+one SGD weight update.
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=\textwidth]{03_openmp_shared_memory.png}
-  \caption{OpenMP shared-memory workflow exported from the draw.io project
-  diagram. Model weights are shared and read-only during the parallel
-  region; each thread writes only to its own private gradient buffer before
-  the master performs one reduction and SGD update.}
+  \caption{OpenMP shared-memory workflow. Model weights are shared and
+  read-only during the parallel region; each thread writes only to its own
+  private gradient buffer before the master performs one reduction and SGD
+  update.}
   \label{fig:omp}
 \end{figure}
 
@@ -239,24 +296,18 @@ OMP\_PLACES=cores} for every timing run.
 
 \subsection{POSIX Threads}\label{sec:pthreads}
 
-The pthreads variant (\texttt{src/pthreads/train.c}) uses a
-\textbf{persistent master/worker pool} created once at program start and
-reused for every mini-batch, which avoids the per-batch
-\texttt{pthread\_create} / \texttt{pthread\_join} cost that the original
-Zhong paper already identified as prohibitive. Synchronisation is
-two-barrier: \texttt{bar\_start} releases the workers for the current
-batch, and \texttt{bar\_done} lets the master wait until every worker has
-finished its slice. Each worker owns a pre-allocated \texttt{MLPGrad} and
-scratch; the partitioning inside a batch is contiguous, matching OpenMP's
-\texttt{schedule(static)}.
+The POSIX Threads variant implements the same shared-memory idea manually
+with a persistent master/worker pool. The master publishes a mini-batch,
+workers process their assigned slices into private gradient buffers, a
+barrier waits for all workers, and the master reduces the gradients before
+the single SGD update.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.78\textwidth]{04_pthreads_master_worker.png}
-  \caption{Pthreads master/worker workflow exported from the draw.io
-  project diagram. Workers live for the entire run; two barriers gate each
-  mini-batch, and the master performs the gradient reduction and SGD
-  update after all workers finish their slices.}
+  \includegraphics[width=\textwidth]{04_pthreads_master_worker.png}
+  \caption{Pthreads master/worker workflow. Workers live for the entire
+  run; two barriers gate each mini-batch, and the master performs the
+  gradient reduction and SGD update after all workers finish their slices.}
   \label{fig:pth}
 \end{figure}
 
@@ -266,35 +317,29 @@ Shutdown is clean: the master sets an \texttt{exit\_flag}, trips
 
 \subsection{MPI (Distributed Memory)}\label{sec:mpi}
 
-The MPI variant (\texttt{src/mpi/train.c}) runs the same algorithm across
-multiple MPI ranks with separate address spaces. It can run across
-physical machines, but the final measurements in this report use local
-multi-rank execution on the HPC host. All ranks load the full dataset and
-initialise an identical model; because \texttt{mlp\_init} is
-deterministic under \texttt{--seed}, no explicit weight broadcast is
-needed. All ranks execute the same shuffle each epoch (same seed), so
-they agree on the order of samples.
+The MPI variant runs the same algorithm across ranks with separate address
+spaces. It can run across physical machines, but the final measurements in
+this report use local multi-rank execution on the HPC host. All ranks load
+the same data split and initialise the same model state, so they agree on
+the mini-batch order.
 
 Per mini-batch, rank~$r$ out of $R$ processes a contiguous slice
 \([r\cdot\mathrm{chunk},\,(r{+}1)\cdot\mathrm{chunk})\) of the batch and
 accumulates into a \emph{rank-local} gradient. The six gradient arrays are
-backed by a \textbf{single contiguous flat buffer} (layout:
-$\mathrm{dW}_1, \mathrm{db}_1, \mathrm{dW}_2, \mathrm{db}_2, \mathrm{dW}_3,
-\mathrm{db}_3$), so one
-\verb|MPI_Allreduce(MPI_IN_PLACE, ..., MPI_SUM)| handles the whole
-gradient state in a single collective --- six separate collective calls
-would pay latency six times. After the Allreduce every rank applies the
-same \texttt{mlp\_sgd\_update}, keeping the models bit-identically
-synchronised. Validation, test inference, and JSON logging happen only on
-rank~0.
+backed by a \textbf{single contiguous flat buffer} containing the weight
+and bias gradients. One packed \texttt{MPI\_Allreduce} therefore handles
+the whole gradient state in a single collective; six separate collective
+calls would pay latency six times. After the Allreduce every rank applies
+the same SGD update, keeping the models bit-identically synchronised.
+Validation, test inference, and JSON logging happen only on rank~0.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.78\textwidth]{05_mpi_distributed_memory.png}
-  \caption{MPI distributed-memory workflow exported from the draw.io
-  project diagram. Each rank owns a private model copy and local gradient;
-  one packed \texttt{MPI\_Allreduce(SUM)} synchronises the full gradient
-  before every rank applies the same SGD update.}
+  \includegraphics[width=\textwidth]{05_mpi_distributed_memory.png}
+  \caption{MPI distributed-memory workflow. Each rank owns a private model
+  copy and local gradient; one packed \texttt{MPI\_Allreduce(SUM)}
+  synchronises the full gradient before every rank applies the same SGD
+  update.}
   \label{fig:mpi}
 \end{figure}
 
@@ -304,8 +349,7 @@ number reflects the slowest rank.
 
 \subsection{Hybrid MPI + OpenMP}\label{sec:hybrid}
 
-The hybrid variant (\texttt{src/hybrid/train.c}) combines both layers of
-parallelism:
+The hybrid variant combines both layers of parallelism:
 
 \begin{itemize}[noitemsep,topsep=2pt]
   \item \textbf{Outer (MPI)} --- identical to Section~\ref{sec:mpi}:
@@ -321,24 +365,23 @@ parallelism:
 \verb|MPI_Init_thread(MPI_THREAD_FUNNELED)| --- only the main thread makes
 MPI calls, and indeed all our MPI collectives are \emph{outside} OpenMP
 regions. The oversubscription rule is
-\(\mathrm{ranks}\times\mathrm{threads} \le \mathrm{cores}\) per machine, and
-we pin with \verb|OMP_PROC_BIND=true OMP_PLACES=cores|.
+\(\mathrm{ranks}\times\mathrm{threads} \le \mathrm{cores}\) per machine. We
+pin OpenMP threads to CPU cores during timing runs.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.82\textwidth]{06_hybrid_mpi_openmp.png}
-  \caption{Hybrid MPI+OpenMP workflow exported from the draw.io project
-  diagram. MPI performs the outer distributed-memory decomposition across
-  ranks, OpenMP performs the inner shared-memory decomposition within each
-  rank, and only the rank-local reduced gradients enter the MPI
-  \texttt{Allreduce}.}
+  \includegraphics[width=\textwidth]{06_hybrid_mpi_openmp.png}
+  \caption{Hybrid MPI+OpenMP workflow. MPI performs the outer
+  distributed-memory decomposition across ranks, OpenMP performs the inner
+  shared-memory decomposition within each rank, and only the rank-local
+  reduced gradients enter the MPI \texttt{Allreduce}.}
   \label{fig:hybrid_workflow}
 \end{figure}
 
 \subsection{CUDA}\label{sec:cuda}
 
-The CUDA variant (\texttt{src/cuda/train.cu}) keeps the entire training
-loop on the GPU. The design decisions are:
+The CUDA variant keeps the training tensors and weights on the GPU. The
+design decisions are:
 
 \begin{itemize}[noitemsep,topsep=2pt]
   \item \textbf{Data resident on device.} Full train/val/test tensors and
@@ -363,17 +406,16 @@ loop on the GPU. The design decisions are:
   batch column, applies $b_3$, computes numerically stable softmax,
   accumulates the cross-entropy loss via \texttt{atomicAdd}, and
   converts $Z_3$ in place to $\mathrm{d}Z_3 = p - \mathbf{1}_y$.
-  \item \textbf{Validation / test Q3} reuses the existing host
-  \texttt{mlp\_predict} after copying weights back from device to host.
+  \item \textbf{Validation / test Q3} copies the trained weights back to
+  the host only when CPU-side evaluation is needed.
 \end{itemize}
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.86\textwidth]{07_cuda_gpu_workflow.png}
-  \caption{CUDA GPU workflow exported from the draw.io project diagram.
-  The host shuffles indices and launches kernels, while the training data,
-  model tensors, cuBLAS operations, custom kernels, and in-place SGD
-  updates remain on the GPU.}
+  \includegraphics[width=\textwidth]{07_cuda_gpu_workflow.png}
+  \caption{CUDA GPU workflow. The host shuffles indices and launches
+  kernels, while the training data, model tensors, cuBLAS operations,
+  custom kernels, and in-place SGD updates remain on the GPU.}
   \label{fig:cuda}
 \end{figure}
 
@@ -390,17 +432,12 @@ MPI+OpenMP runs.
 same HPC host. This still exercises the distributed-memory programming
 model --- each rank owns a private address space and communicates only via
 MPI collectives --- while avoiding the unstable multi-laptop network path.
-The multi-laptop runbook remains in \texttt{scripts/cluster\_setup.md} as
-an optional extension if a true multi-node demonstration is required.
 
 \paragraph{GPU host.} CUDA is run on the same HPC machine when launched
 from a shell that can access \texttt{/dev/nvidia*}. The detected GPU is an
 NVIDIA GeForce RTX~5090 with 32~GB VRAM, driver~595.71.05, and CUDA
 runtime support reported by \texttt{nvidia-smi}. The installed compiler is
-\texttt{nvcc}~12.4 and cuBLAS is linked by the \texttt{train\_cuda}
-target. Exact versions are captured in
-\texttt{results/environment/HPC\_ENVIRONMENT.txt} and
-\texttt{results/cuda/ENVIRONMENT.txt}.
+\texttt{nvcc}~12.4 and cuBLAS is linked by the CUDA build.
 
 \paragraph{Fairness controls.}
 \begin{itemize}[noitemsep,topsep=2pt]
@@ -444,14 +481,13 @@ rounding trajectory.
 
 \begin{table}[H]
   \centering
-  \caption{Final test $\mathrm{Q}_3$ by variant (reference configuration:
-  \(H_1{=}256, H_2{=}128, \mathrm{epochs}{=}80, \mathrm{batch}{=}64,
-  \mathrm{lr}{=}0.01, \mathrm{seed}{=}42\)). Numbers populated from
-  \texttt{plots/accuracy\_table.csv}.}
+  \caption{Final test $\mathrm{Q}_3$ by variant at the reference
+  configuration.}
   \label{tab:acc}
-  \begin{tabular}{llrrr}
+  \small
+  \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}llrrr@{}}
     \toprule
-    variant   & config            & test $\mathrm{Q}_3$ & $\Delta$ vs serial & total time \\
+    Variant   & Configuration     & Test $\mathrm{Q}_3$ & $\Delta$ vs serial & Total time \\
     \midrule
     serial    & 1 thread          & \textbf{59.28\,\%}  & --- (reference) & 236.8\,s \\
     openmp    & 16 threads        & 59.42\,\%           & +0.14 pp        & 95.0\,s  \\
@@ -460,32 +496,61 @@ rounding trajectory.
     hybrid    & 4 ranks $\times$ 4 threads & 59.30\,\% & +0.02 pp & 78.0\,s\\
     cuda      & batch 64, RTX 5090 & 59.37\,\%          & +0.09 pp        & 6.3\,s   \\
     \bottomrule
-  \end{tabular}
+  \end{tabular*}
 \end{table}
 
-\subsection{Shared-memory scaling: OpenMP vs Pthreads}\label{sec:shmem}
-
-Figure~\ref{fig:time_vs_threads} reports the per-epoch wall-clock time and
-Figure~\ref{fig:speedup_vs_threads} the resulting speedup relative to the
-single-threaded run of the same variant.
+Figure~\ref{fig:accuracy_by_variant} visualises the same final test
+accuracy comparison. The dashed line marks the serial baseline; every
+parallel implementation remains within the accepted tolerance, so the
+runtime gains in the following sections are not obtained by changing the
+classification outcome.
 
 \begin{figure}[H]
   \centering
-  \begin{subfigure}[b]{0.48\textwidth}
-    \includegraphics[width=\linewidth]{time_vs_threads.png}
-    \caption{time per epoch}\label{fig:time_vs_threads}
-  \end{subfigure}
-  \hfill
-  \begin{subfigure}[b]{0.48\textwidth}
-    \includegraphics[width=\linewidth]{speedup_vs_threads.png}
-    \caption{speedup}\label{fig:speedup_vs_threads}
-  \end{subfigure}
-  \caption{Shared-memory scaling. Both variants use the same mini-batch
-  data-parallel reduction scheme; the shape of the curve therefore
-  reflects the hardware, not the API.}
+  \includegraphics[width=\textwidth]{accuracy_by_variant.png}
+  \caption{Final test $\mathrm{Q}_3$ by implementation. Bar labels show
+  each variant's absolute Q3 and the percentage-point difference from the
+  serial baseline.}
+  \label{fig:accuracy_by_variant}
 \end{figure}
 
-From \texttt{plots/timing\_summary.csv}, the 20-epoch timing sweep gives:
+Figure~\ref{fig:convergence_curves} compares the 80-epoch training
+trajectories. The validation-Q3 and training-loss curves overlap closely,
+which confirms that the CPU and GPU parallelisations preserve the serial
+mini-batch SGD learning path up to normal floating-point ordering effects.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{convergence_curves.png}
+  \caption{Training convergence for the six reference implementations.
+  The upper panel shows validation $\mathrm{Q}_3$ over epochs; the lower
+  panel shows training loss over epochs.}
+  \label{fig:convergence_curves}
+\end{figure}
+
+\subsection{Shared-memory scaling: OpenMP vs Pthreads}\label{sec:shmem}
+
+Figure~\ref{fig:time_vs_threads} reports the per-epoch wall-clock time.
+Figure~\ref{fig:speedup_vs_threads} reports the resulting speedup relative
+to the single-threaded run of the same variant.
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{time_vs_threads.png}
+  \caption{Shared-memory training time per epoch. Both variants use the
+  same mini-batch data-parallel reduction scheme.}
+  \label{fig:time_vs_threads}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=\textwidth]{speedup_vs_threads.png}
+  \caption{Shared-memory speedup relative to each variant's one-thread
+  run.}
+  \label{fig:speedup_vs_threads}
+\end{figure}
+
+The 20-epoch timing sweep gives:
 \begin{itemize}[noitemsep,topsep=2pt]
   \item \textbf{OpenMP} improves from 2.687\,s/epoch at one thread to a
   best 0.503\,s/epoch at eight threads, a $5.34\times$ speedup. Beyond
@@ -511,7 +576,7 @@ the single-rank gradient exactly.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.6\textwidth]{time_vs_ranks_mpi.png}
+  \includegraphics[width=\textwidth]{time_vs_ranks_mpi.png}
   \caption{MPI training time per epoch on the HPC host, using separate
   MPI address spaces and \texttt{Allreduce} communication.}
   \label{fig:mpi_ranks}
@@ -537,7 +602,7 @@ gradient exchange pays the network cost.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.7\textwidth]{hybrid_heatmap.png}
+  \includegraphics[width=\textwidth]{hybrid_heatmap.png}
   \caption{Hybrid per-epoch time over the local \((R,T)\) matrix.}
   \label{fig:hybrid}
 \end{figure}
@@ -557,7 +622,7 @@ the RTX~5090.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=0.6\textwidth]{cuda_time_vs_batch.png}
+  \includegraphics[width=\textwidth]{cuda_time_vs_batch.png}
   \caption{CUDA training time per epoch vs mini-batch size.}
   \label{fig:cudares}
 \end{figure}
@@ -587,11 +652,10 @@ single most important simplification in the design.
 \subsection{Where scaling plateaus}
 
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item \textbf{Small model, small per-sample work.} One forward +
-  backward pass through a $260{\to}256{\to}128{\to}3$ MLP is cheap. As we
-  add threads, the fixed reduction cost
-  (\(\Theta(|\mathrm{params}|)\approx 250\,\mathrm{kfloats}\) per batch)
-  consumes a growing share.
+  \item \textbf{Small model, small per-sample work.} One forward/backward
+  pass through the 260--256--128--3 MLP is cheap. As we add threads, the
+  fixed reduction cost of about 250\,kfloats per batch consumes a growing
+  share.
   \item \textbf{Mixed CPU topology and SMT.} On the i9-14900K, scaling
   changes as runs move from performance cores to efficiency cores and then
   to SMT siblings. SMT threads share execution units and caches with
@@ -614,13 +678,12 @@ so at steady state they converge to near-identical throughput. Any
 differences come from \textbf{runtime overhead}:
 
 \begin{itemize}[noitemsep,topsep=2pt]
-  \item OpenMP keeps a thread team alive across parallel regions: a
-  recurring \verb|#pragma omp parallel| reuses the same workers.
+  \item OpenMP keeps a thread team alive across parallel regions, so
+  recurring parallel work reuses the same workers.
   \item Our Pthreads implementation is \emph{also} a persistent pool with
   barrier-based dispatch --- that was a deliberate design choice to
-  avoid the per-batch fork/join cost that the original Zhong paper
-  identifies as prohibitive. A naive \texttt{pthread\_create} per batch
-  is orders of magnitude slower.
+  avoid per-batch fork/join overhead. A naive thread-create per batch is
+  orders of magnitude slower.
   \item At very low thread counts (1--2) the OpenMP runtime's first-touch
   memory placement tends to be slightly better, giving OpenMP a small
   edge. At higher thread counts the gap closes and either variant's
@@ -642,90 +705,6 @@ differences come from \textbf{runtime overhead}:
 \end{itemize}
 
 %%======================================================================
-\section{Conclusion and Future Work}\label{sec:conclusion}
-
-We implemented six data-parallel training variants of a CB513
-$\mathrm{Q}_3$ predictor using a shared model kernel and a unified CLI.
-The final experiment workflow validates each variant against the serial
-baseline, then measures time-per-epoch scaling by changing only the
-parallelism knob: thread count for OpenMP/Pthreads, rank count for MPI,
-rank-thread layout for Hybrid, and batch size for CUDA. Shared-memory
-variants are expected to scale until core or memory bandwidth saturation;
-MPI and Hybrid are limited by the packed-gradient \texttt{Allreduce}; and
-CUDA delivers the largest speedup while preserving accuracy at the
-reference batch size.
-
-Future improvements identified during the project but out of its scope:
-
-\begin{itemize}[noitemsep,topsep=2pt]
-  \item Overlap \texttt{MPI\_Allreduce} with the next batch's forward
-  pass (\emph{communication / computation overlap}) --- largest expected
-  benefit for the MPI and hybrid variants.
-  \item Replace the per-batch full Allreduce with a Ring-Allreduce /
-  Tree-Allreduce from libraries such as NCCL or RCCL (GPU clusters).
-  \item Mixed-precision (fp16) on the GPU: model is small enough for
-  precision margin.
-  \item PSSM-based features (as in Zhong et al.) instead of pure
-  one-hot --- orthogonal to parallelism but expected to lift the
-  absolute $\mathrm{Q}_3$ substantially beyond the one-hot feature
-  baseline, into the 70\,+\,\% range reported in the paper.
-\end{itemize}
-
-%%======================================================================
-\appendix
-\section{Reproducibility}\label{app:repro}
-
-\paragraph{Compile commands.} The root \texttt{Makefile} has one target
-per variant:
-\begin{lstlisting}
-make train_serial           # gcc -O3 -march=native
-make train_omp              # gcc -O3 -march=native -fopenmp
-make train_pthreads         # gcc -O3 -march=native -pthread
-make train_mpi              # mpicc
-make train_hybrid           # mpicc + -fopenmp
-make train_cuda             # nvcc + -lcublas
-\end{lstlisting}
-
-\paragraph{Runtime commands.} The recommended way to reproduce all
-experiments is the scripted workflow:
-\begin{lstlisting}
-bash scripts/run_hpc_experiments.sh smoke
-bash scripts/run_hpc_experiments.sh timing-cpu
-bash scripts/run_hpc_experiments.sh timing-cuda
-bash scripts/run_hpc_experiments.sh accuracy
-python3 scripts/make_plots.py
-\end{lstlisting}
-
-The underlying commands used by the script are:
-\begin{lstlisting}
-./train_serial     --epochs 80 --batch 64 --seed 42 --out results/serial
-./train_omp        --epochs 80 --batch 64 --seed 42 --threads 16 --out results/openmp
-./train_pthreads   --epochs 80 --batch 64 --seed 42 --threads 16 --out results/pthreads
-
-mpirun -np 4 \
-    ./train_mpi --epochs 80 --batch 64 --seed 42 --out results/mpi
-
-OMP_PROC_BIND=true OMP_PLACES=cores \
-mpirun -np 4 \
-    ./train_hybrid --threads 4 --epochs 80 --batch 64 --seed 42 \
-                   --out results/hybrid
-
-./train_cuda       --epochs 80 --batch 64 --seed 42 --out results/cuda
-\end{lstlisting}
-
-\paragraph{Machine and software versions.} Per run, captured in
-\texttt{results/<variant>/<run>.json} under the \texttt{hardware} key;
-for the GPU, additionally in \texttt{results/cuda/ENVIRONMENT.txt}.
-
-\paragraph{Data provenance.} See \texttt{docs/data\_provenance.md} for
-exact URL, checksum, and download date of the CB513 distribution.
-
-\paragraph{Workflow diagrams.}
-Editable draw.io source is stored in
-\texttt{docs/diagrams/hpc\_workflows.drawio}. The exported PNG versions
-included in this report are stored under \texttt{docs/diagrams/png/}.
-
-%%======================================================================
 \begin{thebibliography}{9}
 \bibitem{zhong2007} W. Zhong, G. Altun, X. Tian, R. Harrison, P.C. Tai,
 Y. Pan. \emph{Parallel protein secondary structure prediction schemes
@@ -739,8 +718,6 @@ prediction.} Proteins, 34(4):508--519, 1999.
 \bibitem{rost1993} B. Rost, C. Sander. \emph{Improved prediction of
 protein secondary structure by use of sequence profiles and neural
 networks.} PNAS, 90:7558--7562, 1993.
-
-\bibitem{guideline} EE7218 / EC7207 Project Guideline, 2026 intake.
 
 \bibitem{ompiman} Open~MPI Project, version 5.x user manual.
 \url{https://www.open-mpi.org/doc/v4.1/}
