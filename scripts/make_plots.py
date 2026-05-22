@@ -7,6 +7,8 @@ Input:
 Output:
   plots/timing_summary.csv       grouped mean/std per configuration
   plots/accuracy_table.csv       representative accuracy row per variant
+  plots/accuracy_by_variant.png  final test Q3 comparison
+  plots/convergence_curves.png   validation Q3 and train-loss convergence
   plots/time_vs_threads.png      OpenMP and pthreads time per epoch
   plots/speedup_vs_threads.png   OpenMP and pthreads speedup
   plots/time_vs_ranks_mpi.png    MPI rank scaling
@@ -37,6 +39,22 @@ import matplotlib.pyplot as plt
 RESULTS = "results"
 OUT = "plots"
 VARIANTS = ("serial", "openmp", "pthreads", "mpi", "hybrid", "cuda")
+VARIANT_LABELS = {
+    "serial": "Serial",
+    "openmp": "OpenMP",
+    "pthreads": "Pthreads",
+    "mpi": "MPI",
+    "hybrid": "Hybrid",
+    "cuda": "CUDA",
+}
+VARIANT_COLORS = {
+    "serial": "#4B5563",
+    "openmp": "#2563EB",
+    "pthreads": "#F97316",
+    "mpi": "#16A34A",
+    "hybrid": "#7C3AED",
+    "cuda": "#DC2626",
+}
 
 os.makedirs(OUT, exist_ok=True)
 
@@ -363,7 +381,7 @@ def plot_cuda(summary: list[dict]) -> None:
     print(f"  wrote {out}")
 
 
-def write_accuracy_table(summary: list[dict]) -> list[dict]:
+def select_accuracy_references(summary: list[dict]) -> dict[str, dict]:
     by_variant = defaultdict(list)
     for row in summary:
         if row["mean_test_q3"] is not None:
@@ -374,7 +392,117 @@ def write_accuracy_table(summary: list[dict]) -> list[dict]:
         max_epochs = max(row["epochs"] or 0 for row in rows)
         candidates = [row for row in rows if row["epochs"] == max_epochs]
         selected[variant] = max(candidates, key=lambda row: row["latest_mtime"])
+    return selected
 
+
+def plot_accuracy_by_variant(accuracy_rows: list[dict]) -> None:
+    if not accuracy_rows:
+        placeholder_plot("accuracy_by_variant.png", "Final test Q3", "No final accuracy data found.")
+        return
+
+    variants = [row["variant"] for row in accuracy_rows]
+    labels = [VARIANT_LABELS.get(variant, variant) for variant in variants]
+    q3 = [float(row["test_q3"]) for row in accuracy_rows]
+    deltas = [
+        None if row["delta_vs_serial"] == "" else float(row["delta_vs_serial"])
+        for row in accuracy_rows
+    ]
+    serial_q3 = q3[0] if variants and variants[0] == "serial" else q3[0]
+
+    fig, ax = plt.subplots(figsize=(7.2, 4.4))
+    bars = ax.bar(
+        labels,
+        q3,
+        color=[VARIANT_COLORS.get(variant, "#64748B") for variant in variants],
+        alpha=0.86,
+    )
+    ax.axhline(serial_q3, color="#111827", linestyle="--", linewidth=1.2, label="serial baseline")
+    for bar, value, delta in zip(bars, q3, deltas):
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            value + 0.025,
+            f"{value:.2f}%",
+            ha="center",
+            va="bottom",
+            fontsize=8,
+        )
+        if delta is not None:
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                value - 0.055,
+                f"{delta:+.2f} pp",
+                ha="center",
+                va="top",
+                fontsize=8,
+                color="white",
+                fontweight="bold",
+            )
+
+    ax.set_ylabel("test Q3 (%)")
+    ax.set_title("Final test Q3 by implementation")
+    ax.set_ylim(max(0, min(q3) - 0.25), max(q3) + 0.25)
+    ax.grid(True, axis="y", alpha=0.25)
+    ax.legend(loc="lower right")
+    fig.tight_layout()
+    out = f"{OUT}/accuracy_by_variant.png"
+    fig.savefig(out, dpi=160)
+    plt.close(fig)
+    print(f"  wrote {out}")
+
+
+def plot_convergence_curves(summary: list[dict]) -> None:
+    selected = select_accuracy_references(summary)
+    if not selected:
+        placeholder_plot("convergence_curves.png", "Training convergence", "No 80-epoch reference runs found.")
+        return
+
+    fig, (ax_q3, ax_loss) = plt.subplots(2, 1, figsize=(7.4, 6.0), sharex=True)
+    plotted = False
+    for variant in VARIANTS:
+        row = selected.get(variant)
+        if not row or not row.get("latest_file"):
+            continue
+        try:
+            with open(row["latest_file"], "r", encoding="utf-8") as handle:
+                data = json.load(handle)
+        except Exception as exc:
+            print(f"  [skip] convergence {variant}: {exc}")
+            continue
+        epoch_log = data.get("epoch_log") or []
+        if not epoch_log:
+            continue
+        epochs = [entry["epoch"] for entry in epoch_log]
+        val_q3 = [entry["val_q3"] for entry in epoch_log]
+        train_loss = [entry["train_loss"] for entry in epoch_log]
+        label = VARIANT_LABELS.get(variant, variant)
+        color = VARIANT_COLORS.get(variant)
+        ax_q3.plot(epochs, val_q3, label=label, color=color, linewidth=1.5, alpha=0.88)
+        ax_loss.plot(epochs, train_loss, label=label, color=color, linewidth=1.5, alpha=0.88)
+        plotted = True
+
+    if not plotted:
+        plt.close(fig)
+        placeholder_plot("convergence_curves.png", "Training convergence", "No convergence data found.")
+        return
+
+    ax_q3.set_ylabel("validation Q3 (%)")
+    ax_q3.set_title("Validation accuracy convergence")
+    ax_q3.grid(True, alpha=0.25)
+    ax_q3.legend(ncol=3, fontsize=8, loc="lower right")
+
+    ax_loss.set_xlabel("epoch")
+    ax_loss.set_ylabel("training loss")
+    ax_loss.set_title("Training loss convergence")
+    ax_loss.grid(True, alpha=0.25)
+    fig.tight_layout()
+    out = f"{OUT}/convergence_curves.png"
+    fig.savefig(out, dpi=160)
+    plt.close(fig)
+    print(f"  wrote {out}")
+
+
+def write_accuracy_table(summary: list[dict]) -> list[dict]:
+    selected = select_accuracy_references(summary)
     serial_q3 = selected.get("serial", {}).get("mean_test_q3")
     rows = []
     for variant in VARIANTS:
@@ -463,6 +591,8 @@ def main() -> None:
 
     print("\n--- accuracy table ---")
     accuracy_rows = write_accuracy_table(summary)
+    plot_accuracy_by_variant(accuracy_rows)
+    plot_convergence_curves(summary)
     for row in accuracy_rows:
         print(
             f"  {row['variant']:10s} ep={row['epochs']:>3} "
