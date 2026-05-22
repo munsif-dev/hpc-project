@@ -69,15 +69,16 @@ static void mkdir_p(const char *path) {
 void runlog_write(const RunLog *log, const char *out_dir) {
     mkdir_p(out_dir);
 
-    /* Build filename: <variant>_t<threads>_s<seed>_<timestamp>.json */
+    /* Build filename with the full execution shape to avoid fast-run collisions. */
     time_t now = time(NULL);
     struct tm *tm_info = localtime(&now);
     char timestamp[32];
     strftime(timestamp, sizeof(timestamp), "%Y%m%d_%H%M%S", tm_info);
 
     char filepath[512];
-    snprintf(filepath, sizeof(filepath), "%s/%s_t%d_s%d_%s.json",
-             out_dir, log->variant, log->threads, log->seed, timestamp);
+    snprintf(filepath, sizeof(filepath), "%s/%s_r%d_t%d_b%d_s%d_%s.json",
+             out_dir, log->variant, log->mpi_ranks, log->threads,
+             log->batch_size, log->seed, timestamp);
 
     FILE *f = fopen(filepath, "w");
     if (!f) {

@@ -1,0 +1,383 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="app.diagrams.net" modified="2026-05-21T00:00:00.000Z" agent="Codex" version="24.0.0" type="device">
+  <diagram id="preprocessing" name="Preprocessing">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" page="1" pageWidth="1600" pageHeight="900">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="raw" value="1 Raw CB513 .all files" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dbeafe;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="40" y="260" width="210" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="parse" value="2 Parse residues and 8-state labels" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dbeafe;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="290" y="260" width="210" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="raw" target="parse">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="q3" value="3 Collapse DSSP to Q3" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dbeafe;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="540" y="260" width="210" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="parse" target="q3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="win" value="4 Build 13-residue windows" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dbeafe;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="790" y="260" width="210" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="q3" target="win">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="split" value="5 Fixed train/val/test split" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dbeafe;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="260" width="210" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="win" target="split">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="bin" value="6 Binary tensors for all variants" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dbeafe;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="260" width="210" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="split" target="bin">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="serial-sgd" name="Serial SGD">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" page="1" pageWidth="1600" pageHeight="900">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="shuffle" value="1 Shuffle mini-batch indices" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#e2e8f0;strokeColor=#475569;" vertex="1" parent="1">
+          <mxGeometry x="110" y="260" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="forward" value="2 Forward pass" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dbeafe;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="400" y="260" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="shuffle" target="forward">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="backprop" value="3 Backprop gradients" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#fef3c7;strokeColor=#d97706;" vertex="1" parent="1">
+          <mxGeometry x="690" y="260" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="forward" target="backprop">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="update" value="4 SGD update W &amp;lt;- W - lr*dW/B" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="980" y="260" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="backprop" target="update">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eval" value="5 Validate Q3" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#ede9fe;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="260" width="240" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="update" target="eval">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="openmp" name="OpenMP">
+    <mxGraphModel dx="1600" dy="1050" grid="1" gridSize="10" page="1" pageWidth="1600" pageHeight="1050">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="w" value="1 Shared weights read-only" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#e2e8f0;strokeColor=#475569;" vertex="1" parent="1">
+          <mxGeometry x="220" y="120" width="300" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="split" value="2 Static mini-batch split across threads" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dbeafe;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="660" y="120" width="360" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="w" target="split">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t0" value="3a Thread 0 private gradient" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="180" y="390" width="300" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="es0" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="split" target="t0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er0" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="t0" target="reduce">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t1" value="3b Thread 1 private gradient" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="620" y="390" width="300" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="es1" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="split" target="t1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er1" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="t1" target="reduce">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="t2" value="3c Thread N private gradient" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="390" width="300" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="es2" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="split" target="t2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="er2" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="t2" target="reduce">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="reduce" value="4 Reduce thread gradients" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#fef3c7;strokeColor=#d97706;" vertex="1" parent="1">
+          <mxGeometry x="530" y="680" width="460" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="update" value="5 Master applies one SGD update" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#ede9fe;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="570" y="870" width="380" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="eu" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="reduce" target="update">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="pthreads" name="Pthreads">
+    <mxGraphModel dx="1600" dy="1050" grid="1" gridSize="10" page="1" pageWidth="1600" pageHeight="1050">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="master" value="1 Master publishes batch" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#e2e8f0;strokeColor=#475569;" vertex="1" parent="1">
+          <mxGeometry x="120" y="120" width="330" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="start" value="2 bar_start releases workers" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dbeafe;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="550" y="120" width="330" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="master" target="start">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="assign" value="3 Workers process fixed slices" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="980" y="120" width="330" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="start" target="assign">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wk0" value="3a Worker 0 local dW" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="180" y="390" width="300" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="ew0" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="assign" target="wk0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ed0" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="wk0" target="done">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wk1" value="3b Worker 1 local dW" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="620" y="390" width="300" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="ew1" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="assign" target="wk1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ed1" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="wk1" target="done">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wk2" value="3c Worker N local dW" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="390" width="300" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="ew2" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="assign" target="wk2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ed2" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="wk2" target="done">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="done" value="4 bar_done waits for all slices" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#fef3c7;strokeColor=#d97706;" vertex="1" parent="1">
+          <mxGeometry x="420" y="700" width="360" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="update" value="5 Master reduces gradients and updates W" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#ede9fe;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="850" y="700" width="430" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="eu" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="done" target="update">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="mpi" name="MPI">
+    <mxGraphModel dx="1600" dy="1050" grid="1" gridSize="10" page="1" pageWidth="1600" pageHeight="1050">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="r0" value="1a Rank 0 private W and batch slice" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dbeafe;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="120" y="140" width="340" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="g0" value="2 Local forward/backward rank gradient" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="120" y="400" width="340" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="eg0" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="r0" target="g0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ea0" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="g0" target="allreduce">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r1" value="1b Rank 1 private W and batch slice" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dbeafe;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="620" y="140" width="340" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="g1" value="2 Local forward/backward rank gradient" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="620" y="400" width="340" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="eg1" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="r1" target="g1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ea1" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="g1" target="allreduce">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r2" value="1c Rank R-1 private W and batch slice" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dbeafe;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="140" width="340" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="g2" value="2 Local forward/backward rank gradient" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="400" width="340" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="eg2" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="r2" target="g2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ea2" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="g2" target="allreduce">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="allreduce" value="3-4 Pack gradients, MPI_Allreduce(SUM)" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#fef3c7;strokeColor=#d97706;" vertex="1" parent="1">
+          <mxGeometry x="500" y="690" width="600" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="update" value="5 Same SGD update on every rank" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#ede9fe;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="560" y="880" width="480" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="eu" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="allreduce" target="update">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="hybrid" name="Hybrid">
+    <mxGraphModel dx="1800" dy="1100" grid="1" gridSize="10" page="1" pageWidth="1800" pageHeight="1100">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="rank0" value="1 Rank 0 owns a batch slice" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#ffffff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="90" y="130" width="760" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="r0t0" value="2a Thread 0 local grad" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="150" y="330" width="190" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="et00" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="rank0" target="r0t0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="err00" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="r0t0" target="rr0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r0t1" value="2b Thread 1 local grad" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="360" y="330" width="190" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="et01" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="rank0" target="r0t1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="err01" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="r0t1" target="rr0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r0t2" value="2c Thread T local grad" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="570" y="330" width="190" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="et02" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="rank0" target="r0t2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="err02" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="r0t2" target="rr0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rr0" value="3 Intra-rank reduce" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#fef3c7;strokeColor=#d97706;" vertex="1" parent="1">
+          <mxGeometry x="310" y="550" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="ea0" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="rr0" target="allreduce">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rank1" value="1 Rank 1 owns a batch slice" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#ffffff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="950" y="130" width="760" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="r1t0" value="2a Thread 0 local grad" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="1010" y="330" width="190" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="et10" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="rank1" target="r1t0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="err10" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="r1t0" target="rr1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r1t1" value="2b Thread 1 local grad" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="330" width="190" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="et11" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="rank1" target="r1t1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="err11" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="r1t1" target="rr1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="r1t2" value="2c Thread T local grad" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="1430" y="330" width="190" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="et12" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="rank1" target="r1t2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="err12" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="r1t2" target="rr1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="rr1" value="3 Intra-rank reduce" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#fef3c7;strokeColor=#d97706;" vertex="1" parent="1">
+          <mxGeometry x="1170" y="550" width="320" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="ea1" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="rr1" target="allreduce">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="allreduce" value="4 MPI_Allreduce combines rank gradients" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#ffe4e6;strokeColor=#e11d48;" vertex="1" parent="1">
+          <mxGeometry x="530" y="760" width="740" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="update" value="5 Identical SGD update on all ranks" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#ede9fe;strokeColor=#7c3aed;" vertex="1" parent="1">
+          <mxGeometry x="620" y="950" width="560" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="eu" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="allreduce" target="update">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="cuda" name="CUDA">
+    <mxGraphModel dx="1800" dy="1100" grid="1" gridSize="10" page="1" pageWidth="1800" pageHeight="1100">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="host" value="CPU host: 1 Shuffle batch indices and launch kernels" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#eff6ff;strokeColor=#2563eb;" vertex="1" parent="1">
+          <mxGeometry x="160" y="100" width="1480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="resident" value="2 Data and W stay resident on GPU" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="140" y="430" width="240" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="gather" value="3 Parallel gather column-major batch" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="440" y="430" width="240" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="forward" value="4 Forward cuBLAS GEMMs + ReLU kernels" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="740" y="430" width="240" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="loss" value="5 Softmax loss computes dZ in parallel" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#dcfce7;strokeColor=#16a34a;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="430" width="240" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="backward" value="6 Backward GEMMs update W in place" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#fef3c7;strokeColor=#d97706;" vertex="1" parent="1">
+          <mxGeometry x="740" y="730" width="240" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="eval" value="7 Copy W to CPU only for Q3 evaluation" style="rounded=1;whiteSpace=wrap;html=1;fontSize=14;strokeWidth=2;fillColor=#fef3c7;strokeColor=#d97706;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="730" width="240" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="eh" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="host" target="gather">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eresidentgather" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="resident" target="gather">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="egatherforward" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="gather" target="forward">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="eforwardloss" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="forward" target="loss">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="elossbackward" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="loss" target="backward">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ebackwardeval" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="backward" target="eval">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ebackwardresident" style="endArrow=block;html=1;rounded=0;fontSize=14;strokeWidth=2;" edge="1" parent="1" source="backward" target="resident">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

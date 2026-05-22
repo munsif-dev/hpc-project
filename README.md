@@ -21,9 +21,12 @@ scripts/
   download_cb513.sh              one-time dataset fetch
   preprocess_*.py                feature pipeline
   run_sweeps.sh                  local timing sweeps (serial + omp + pthreads)
+  run_hpc_experiments.sh         full HPC experiment runner
   make_plots.py                  generate all report figures
   cluster_setup.md               multi-laptop MPI runbook
-  cuda_setup.md                  CUDA build/run guide for remote GPUs
+  cuda_setup.md                  CUDA build/run guide for the HPC GPU
+docs/diagrams/
+  hpc_workflows.drawio           editable workflow diagrams
 results/<variant>/               per-run JSON logs (epoch trajectory + final)
 plots/                           PNG figures + accuracy CSV
 report/                          final analysis report
@@ -64,15 +67,15 @@ Examples:
 ./train_omp        --epochs 80 --batch 64 --seed 42 --threads 8 --out results/openmp
 ./train_pthreads   --epochs 80 --batch 64 --seed 42 --threads 8 --out results/pthreads
 
-# MPI: see scripts/cluster_setup.md for multi-laptop setup
-mpirun -np 3 ./train_mpi --epochs 80 --batch 64 --seed 42 --out results/mpi
+# MPI: single-machine ranks on the HPC host
+mpirun -np 4 ./train_mpi --epochs 80 --batch 64 --seed 42 --out results/mpi
 
-# Hybrid: one rank per laptop, OpenMP threads inside each rank
+# Hybrid: MPI ranks plus OpenMP threads per rank
 OMP_PROC_BIND=true OMP_PLACES=cores \
-mpirun -np 3 ./train_hybrid --threads 4 --epochs 80 --batch 64 --seed 42 \
+mpirun -np 4 ./train_hybrid --threads 4 --epochs 80 --batch 64 --seed 42 \
        --out results/hybrid
 
-# CUDA: see scripts/cuda_setup.md for remote GPU instructions
+# CUDA: run from a shell where nvidia-smi can see the RTX GPU
 ./train_cuda --epochs 80 --batch 64 --seed 42 --out results/cuda
 ```
 
@@ -87,11 +90,14 @@ Every parallel variant should land within ±0.5 % of this value (±1 % for CUDA 
 ## Reproducing the figures
 
 ```bash
-bash scripts/run_sweeps.sh            # serial + openmp/pthreads sweeps (local)
-python3 scripts/make_plots.py         # reads results/*/*.json → plots/*.png
+bash scripts/run_hpc_experiments.sh smoke       # quick 1-epoch validation
+bash scripts/run_hpc_experiments.sh timing-cpu  # CPU/MPI/hybrid timing sweeps
+bash scripts/run_hpc_experiments.sh timing-cuda # CUDA batch-size sweep
+bash scripts/run_hpc_experiments.sh accuracy    # 80-epoch accuracy runs
+python3 scripts/make_plots.py                  # results/*.json → plots/*.png + CSV
 ```
 
-MPI / hybrid / CUDA figures need the corresponding result files generated on a suitable host — the plot script gracefully skips variants with no data.
+`scripts/make_plots.py` writes `plots/timing_summary.csv` with mean/std across repeated runs and `plots/accuracy_table.csv` for the final Q3 comparison. The full `all` profile can take a long time; run the split profiles above when you want checkpoints.
 
 ## Data
 

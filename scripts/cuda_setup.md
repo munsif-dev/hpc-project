@@ -2,7 +2,7 @@
 
 The CUDA variant (`train_cuda`) uses cuBLAS for all weight/activation GEMMs and a handful of custom kernels for bias+ReLU, the ReLU derivative mask, and the fused softmax+cross-entropy+gradient computation. Forward and backward passes, and the SGD update, all stay on the GPU.
 
-## Prerequisites (on the lab / friend's machine)
+## Prerequisites (on the HPC machine)
 
 - NVIDIA GPU with CUDA capability >= 3.5.
 - CUDA toolkit installed (any recent version ≥ 10.1 should work; 11.x or 12.x recommended):
@@ -13,14 +13,7 @@ The CUDA variant (`train_cuda`) uses cuBLAS for all weight/activation GEMMs and 
 - cuBLAS (bundled with the CUDA toolkit — no separate install).
 - `gcc`, `make` (to build the common C objects).
 
-## Copy the project
-
-```bash
-# From your laptop:
-rsync -av --exclude='.git' ~/hpc-project/ user@lab:~/hpc-project/
-```
-
-Make sure `data/processed/cb513/binary/` is present.
+The current HPC host has an RTX 5090 and the NVIDIA driver is visible from a normal shell. If Codex runs in a sandboxed shell, `nvidia-smi` may fail even though your terminal works; launch CUDA experiment profiles from a shell that can access `/dev/nvidia*`.
 
 ## Build
 
@@ -45,6 +38,13 @@ export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH
              --out results/cuda --verbose 1
 ```
 
+Or use the project runner:
+
+```bash
+bash scripts/run_hpc_experiments.sh timing-cuda
+bash scripts/run_hpc_experiments.sh accuracy
+```
+
 ## Required experiment sweep (Phase 10)
 
 Batch-size sweep — same seed, same other hyperparameters:
@@ -67,13 +67,6 @@ Add this to the top of your run so the analysis report can quote exact versions:
 nvcc --version        >  results/cuda/ENVIRONMENT.txt
 nvidia-smi            >> results/cuda/ENVIRONMENT.txt
 gcc --version          >> results/cuda/ENVIRONMENT.txt
-```
-
-## Copy results back
-
-```bash
-# On your laptop:
-rsync -av user@lab:~/hpc-project/results/cuda/ ~/hpc-project/results/cuda/
 ```
 
 ## Accuracy expectation
