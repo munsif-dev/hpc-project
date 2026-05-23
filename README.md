@@ -108,8 +108,3 @@ CB513 (Cuff & Barton, 1999) was retrieved via `scripts/download_cb513.sh`. Label
 - all others → **C** (coil)
 
 Window size 13 with flat-edge padding, one-hot encoding (20 × 13 = 260 dims), fixed 70/15/15 train/val/test split (`scripts/split_dataset.py`), all deterministic under the seed.
-
-## References
-
-- Zhong, W. et al. (2007). *Parallel protein secondary structure prediction schemes using Pthread and OpenMP over hyper-threading technology.* J. Supercomputing 41.
-- Cuff, J. A. & Barton, G. J. (1999). *Evaluation and improvement of multiple sequence methods for protein secondary structure prediction.* Proteins.

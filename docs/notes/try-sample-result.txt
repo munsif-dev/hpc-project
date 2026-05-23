@@ -1,8 +1,0 @@
-
-// trying out the sample protien structure and finding out the secondary structure
-https://www.compbio.dundee.ac.uk/jpred4/index.html
-
-
-// DATA SOURCE URL  
-Primary source: official JPred CB513 archive
-URL: https://www.compbio.dundee.ac.uk/jpred4/downloads/513_distribute.tar.gz
