@@ -62,11 +62,8 @@
 
 \pagestyle{fancy}
 \fancyhf{}
-\lhead{\small Parallel MLP Training}
-\rhead{\small Group 36}
 \cfoot{\small\thepage}
-\renewcommand{\headrulewidth}{0.4pt}
-\renewcommand{\headrule}{\hbox to\headwidth{\color{ReportRule}\leaders\hrule height \headrulewidth\hfill}}
+\renewcommand{\headrulewidth}{0pt}
 
 \graphicspath{{figures/}{../../plots/}{plots/}{../diagrams/png/}}
 
@@ -88,42 +85,28 @@
 \begin{titlepage}
   \thispagestyle{empty}
   \centering
-  \vspace*{0.9cm}
-  {\large\color{ReportSlate}\reportcourse\par}
-  \vspace{1.35cm}
-  {\LARGE\bfseries\reporttitle\par}
-  \vspace{0.45cm}
-  {\large\color{ReportSlate}\reportsubtitle\par}
-  \vspace{0.75cm}
-  {\color{ReportBlue}\rule{0.78\textwidth}{1.2pt}\par}
-  \vspace{0.85cm}
-  {\Large\bfseries \reportgroup\par}
-  \vspace{0.35cm}
+  \includegraphics[width=3cm]{Logo.jpeg}\par\vspace{0.9cm}
+  {\LARGE\bfseries Department of Electrical and Information Engineering\par}\vspace{0.35cm}
+  {\Large\bfseries University of Ruhuna\par}\vspace{1.4cm}
+
+  {\Large\bfseries \reportcourse\par}\vspace{1.4cm}
+
+  {\LARGE\bfseries \reporttitle\par}\vspace{0.45cm}
+  {\large\color{ReportSlate}\reportsubtitle\par}\vspace{0.85cm}
+  {\color{ReportBlue}\rule{0.72\textwidth}{1.2pt}\par}\vspace{0.85cm}
+
+  {\Large\bfseries \reportgroup\par}\vspace{0.35cm}
   {\normalsize
-    EG/2021/4684 MUNSIF M.F.A.\\
-    EG/2021/4685 MUTHUKUMARI H.M.S.\\
-    EG/2021/4686 NADHA M.J.\par}
+    EG/2021/4684 \quad MUNSIF M.F.A.\\
+    EG/2021/4685 \quad MUTHUKUMARI H.M.S.\\
+    EG/2021/4686 \quad NADHA M.J.\par}
+
+  \vspace{1.4cm}
+  {\large \reportdate\par}
+
   \vfill
-  \begin{minipage}{0.86\textwidth}
-    \small
-    \textbf{Abstract}\par\medskip
-    We implement and evaluate six variants of the training loop for a
-    compact multi-layer perceptron (MLP) that classifies per-residue
-    secondary structure ($\mathrm{Q}_3$) on the CB513 benchmark: a serial
-    baseline, two shared-memory parallelisations (OpenMP and POSIX
-    threads), a distributed-memory implementation with MPI, a hybrid MPI
-    $+$ OpenMP version, and a CUDA implementation that offloads the whole
-    training loop to the GPU. All variants share the same model, command
-    interface, and data split so that accuracy can be compared directly.
-    In the final 80-epoch run, the serial baseline reaches test
-    $\mathrm{Q}_3 = 59.28\,\%$ and acts as the reference target for every
-    parallel variant. We measure per-epoch wall-clock time as a function
-    of shared-memory thread count, MPI rank count, hybrid rank/thread
-    layout, and CUDA batch size, then discuss where each design scales well
-    and where it plateaus.
-  \end{minipage}
-  \vfill
-  {\large\reportdate\par}
+  Department of Electrical and Information Engineering\\
+  University of Ruhuna
 \end{titlepage}
 
 \clearpage
@@ -154,8 +137,7 @@ The report focuses on three evaluation questions: how each parallel
 programming concept is applied to the neural-network training loop, whether
 the parallel versions preserve the serial prediction accuracy, and how
 runtime changes as the thread count, rank count, hybrid layout, or CUDA
-batch size is varied. CUDA is included as an additional GPU implementation
-because the final experiments were completed for it.
+batch size is varied.
 
 %%======================================================================
 \section{Dataset and Preprocessing}\label{sec:data}
@@ -273,13 +255,44 @@ reduction sums these; a single SGD update is then applied. This removes
 all locking on the weight matrices.}
 \end{quote}
 
+Formally, denote the model parameters by $\theta$, the learning rate by
+$\eta$, the mini-batch size by $B$, and the number of parallel workers by
+$W$. Every variant in this report instantiates the same parallel
+mini-batch SGD template:
+\begin{equation}\label{eq:parallel-sgd}
+\begin{aligned}
+&\textbf{for}\ \mathrm{epoch}=1,\dots,E:\\
+&\quad \mathrm{shuffle}(\mathrm{train\_indices})\\
+&\quad \textbf{for each mini-batch}\ \mathcal{B}\subset\{1,\dots,N\},\ |\mathcal{B}|=B:\\
+&\qquad \mathcal{B}=\bigsqcup_{w=1}^{W}\mathcal{B}_{w}\ \text{(disjoint per-worker slices)}\\
+&\qquad \mathbf{g}_{w}\;=\;\sum_{i\in\mathcal{B}_{w}}\nabla_{\theta}\,\ell\bigl(x_{i},y_{i};\theta\bigr)
+       \quad\text{in parallel; $\theta$ read-only}\\
+&\qquad \mathbf{g}\;=\;\mathop{\textstyle\bigoplus}_{w=1}^{W}\mathbf{g}_{w}
+       \quad\text{(reduction; mechanism is variant-specific)}\\
+&\qquad \theta\;\leftarrow\;\theta-\tfrac{\eta}{B}\,\mathbf{g}
+\end{aligned}
+\end{equation}
+The first three lines and the final SGD update are identical across
+variants; the per-worker gradient slice and the reduction
+$\bigoplus_{w}\mathbf{g}_{w}$ are what each parallelisation specialises.
+The next five subsections describe exactly how each variant realises the
+reduction step.
+
 \subsection{OpenMP}\label{sec:openmp}
 
 The OpenMP variant uses shared-memory data parallelism. The model weights
-are shared but read-only while a mini-batch is split across threads. Each
-thread computes forward and backward passes for its slice, writes private
-gradients, and then the master thread reduces those gradients and applies
-one SGD weight update.
+are shared but read-only while a mini-batch is split across $T$ threads.
+A \verb|#pragma omp parallel for schedule(static)| over the mini-batch
+indices fans the work out to the team, each thread accumulates into a
+thread-private \texttt{MLPGrad} struct, and an implicit barrier at the
+end of the parallel region serialises the post-loop reduction. The master
+thread (thread 0) then performs the gradient sum and applies a single SGD
+update. Concretely, the reduction step of
+Equation~\eqref{eq:parallel-sgd} is realised as
+\begin{equation}\label{eq:omp-reduce}
+  \mathbf{g}\;=\;\sum_{w=0}^{T-1}\mathbf{g}_{w}
+  \qquad\text{(serial post-barrier reduce in shared memory)}.
+\end{equation}
 
 \begin{figure}[H]
   \centering
@@ -291,16 +304,31 @@ one SGD weight update.
   \label{fig:omp}
 \end{figure}
 
-Runtime placement was pinned with \texttt{OMP\_PROC\_BIND=true
-OMP\_PLACES=cores} for every timing run.
+\verb|schedule(static)| gives every thread a contiguous, size-balanced
+slice and avoids work-stealing overhead. Runtime placement is pinned
+with \verb|OMP_PROC_BIND=true| \verb|OMP_PLACES=cores|, which on the
+i9-14900K keeps each thread on its own physical core and lets
+first-touch allocation localise the gradient buffer to that core for
+the whole epoch.
 
 \subsection{POSIX Threads}\label{sec:pthreads}
 
-The POSIX Threads variant implements the same shared-memory idea manually
-with a persistent master/worker pool. The master publishes a mini-batch,
-workers process their assigned slices into private gradient buffers, a
-barrier waits for all workers, and the master reduces the gradients before
-the single SGD update.
+The POSIX Threads variant implements the same shared-memory idea
+manually, with full control of the thread-pool lifecycle. The master
+spawns $T-1$ worker threads \emph{once} at the start of training and
+keeps them alive for every mini-batch in the run, avoiding the
+\verb|pthread_create|/\verb|pthread_join| cost that a naive
+fork-per-batch design would pay each step. Two barriers gate the inner
+loop: \verb|bar_start| releases all workers onto the current mini-batch,
+they each accumulate into a thread-local gradient slot, \verb|bar_done|
+waits for all of them, and the master then sums the slots and applies
+the SGD update. The reduction therefore takes the same algebraic form as
+Equation~\eqref{eq:omp-reduce},
+\begin{equation}\label{eq:pth-reduce}
+  \mathbf{g}\;=\;\sum_{w=0}^{T-1}\mathbf{g}_{w}
+  \qquad\text{(master sum, after \texttt{bar\_done})},
+\end{equation}
+but the synchronisation primitive is explicit rather than implicit.
 
 \begin{figure}[H]
   \centering
@@ -311,27 +339,37 @@ the single SGD update.
   \label{fig:pth}
 \end{figure}
 
-Shutdown is clean: the master sets an \texttt{exit\_flag}, trips
-\texttt{bar\_start} one last time, and each worker returns and is
-\texttt{pthread\_join}-ed.
+Shutdown is clean: the master sets \verb|exit_flag|, trips
+\verb|bar_start| once more, and each worker is joined. The persistent
+pool keeps per-batch cost dominated by the forward/backward work and
+the gradient sum, not by thread management.
 
 \subsection{MPI (Distributed Memory)}\label{sec:mpi}
 
-The MPI variant runs the same algorithm across ranks with separate address
-spaces. It can run across physical machines, but the final measurements in
-this report use local multi-rank execution on the HPC host. All ranks load
-the same data split and initialise the same model state, so they agree on
-the mini-batch order.
+The MPI variant runs the same algorithm across ranks with separate
+address spaces. It can run across physical machines, but the final
+measurements in this report use local multi-rank execution on the HPC
+host. All ranks load the same data split and initialise the same model
+state from \verb|--seed 42|, so without ever broadcasting weights each
+rank starts at bit-identical $\theta$ and agrees on the per-epoch
+shuffle order.
 
 Per mini-batch, rank~$r$ out of $R$ processes a contiguous slice
 \([r\cdot\mathrm{chunk},\,(r{+}1)\cdot\mathrm{chunk})\) of the batch and
-accumulates into a \emph{rank-local} gradient. The six gradient arrays are
-backed by a \textbf{single contiguous flat buffer} containing the weight
-and bias gradients. One packed \texttt{MPI\_Allreduce} therefore handles
-the whole gradient state in a single collective; six separate collective
-calls would pay latency six times. After the Allreduce every rank applies
-the same SGD update, keeping the models bit-identically synchronised.
-Validation, test inference, and JSON logging happen only on rank~0.
+accumulates into a \emph{rank-local} gradient $\mathbf{g}_{r}$. The six
+weight and bias gradient arrays are backed by a \textbf{single
+contiguous flat buffer}, so the reduction step is realised by exactly
+one collective per mini-batch,
+\begin{equation}\label{eq:mpi-reduce}
+  \mathbf{g}\;=\;\sum_{r=0}^{R-1}\mathbf{g}_{r}
+  \quad\text{via}\quad
+  \texttt{MPI\_Allreduce(\&g,\,\&g,\,n,\,MPI\_FLOAT,\,MPI\_SUM,\,MPI\_COMM\_WORLD).}
+\end{equation}
+Packing into one buffer pays the Allreduce latency once instead of
+six times. After the Allreduce every rank applies the same SGD update
+to its private $\theta$, keeping the model copies bit-identically
+synchronised across the run. Validation, test inference, and JSON
+logging happen only on rank~0.
 
 \begin{figure}[H]
   \centering
@@ -362,11 +400,28 @@ The hybrid variant combines both layers of parallelism:
 \end{itemize}
 
 \noindent We initialise MPI with
-\verb|MPI_Init_thread(MPI_THREAD_FUNNELED)| --- only the main thread makes
-MPI calls, and indeed all our MPI collectives are \emph{outside} OpenMP
-regions. The oversubscription rule is
-\(\mathrm{ranks}\times\mathrm{threads} \le \mathrm{cores}\) per machine. We
-pin OpenMP threads to CPU cores during timing runs.
+\verb|MPI_Init_thread(MPI_THREAD_FUNNELED)|. This requested level
+guarantees that only the main thread of each rank issues MPI calls, which
+matches our design --- the OpenMP parallel region computes
+$\mathbf{g}_{r,t}$ for each $(rank,thread)$ slice, the main thread sums
+them, and only \emph{after} the OpenMP region closes does the main thread
+enter the cross-rank \verb|MPI_Allreduce|. The reduction therefore
+factors into two stages,
+\begin{equation}\label{eq:hyb-reduce}
+  \mathbf{g}_{r}=\sum_{t=0}^{T-1}\mathbf{g}_{r,t}
+  \quad\text{(thread reduce within rank)},
+  \qquad
+  \mathbf{g}=\sum_{r=0}^{R-1}\mathbf{g}_{r}
+  \quad\text{(rank reduce via Allreduce)}.
+\end{equation}
+The oversubscription rule is
+\(\mathrm{ranks}\times\mathrm{threads} \le \mathrm{cores}\) per machine
+and OpenMP threads are pinned to CPU cores during timing runs. The
+$(R,T)$ grid lets us tune the split between rank-level communication
+and thread-level reduction: more threads per rank cuts the number of
+ranks (and therefore the Allreduce payload-fanout cost), while more
+ranks per machine increases parallelism but multiplies the
+collective-synchronisation cost.
 
 \begin{figure}[H]
   \centering
@@ -380,8 +435,18 @@ pin OpenMP threads to CPU cores during timing runs.
 
 \subsection{CUDA}\label{sec:cuda}
 
-The CUDA variant keeps the training tensors and weights on the GPU. The
-design decisions are:
+The CUDA variant keeps the training tensors and weights on the GPU and
+exposes a different kind of parallelism than the CPU variants: there is
+no per-worker private gradient buffer. Instead, the reduction step of
+Equation~\eqref{eq:parallel-sgd} is \emph{fused} into the SGD update
+itself --- a single cuBLAS \texttt{sgemm} call with carefully chosen
+scaling factors writes the gradient contribution directly into the
+weight matrix,
+\begin{equation}\label{eq:cuda-reduce}
+  \theta\;\leftarrow\;\alpha\,(\mathrm{d}Z)\,A^{\top}+\beta\,\theta,
+  \qquad \alpha=-\tfrac{\eta}{B},\quad \beta=1.
+\end{equation}
+The full design decisions are:
 
 \begin{itemize}[noitemsep,topsep=2pt]
   \item \textbf{Data resident on device.} Full train/val/test tensors and
@@ -465,6 +530,7 @@ runtime support reported by \texttt{nvidia-smi}. The installed compiler is
         deviation across repeated runs.
 \end{itemize}
 
+\newpage
 %%======================================================================
 \section{Results}\label{sec:results}
 
@@ -507,7 +573,7 @@ classification outcome.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{accuracy_by_variant.png}
+  \includegraphics[width=0.9\textwidth]{accuracy_by_variant.png}
   \caption{Final test $\mathrm{Q}_3$ by implementation. Bar labels show
   each variant's absolute Q3 and the percentage-point difference from the
   serial baseline.}
@@ -521,7 +587,7 @@ mini-batch SGD learning path up to normal floating-point ordering effects.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{convergence_curves.png}
+  \includegraphics[width=0.9\textwidth]{convergence_curves.png}
   \caption{Training convergence for the six reference implementations.
   The upper panel shows validation $\mathrm{Q}_3$ over epochs; the lower
   panel shows training loss over epochs.}
@@ -536,7 +602,7 @@ to the single-threaded run of the same variant.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{time_vs_threads.png}
+  \includegraphics[width=0.9\textwidth]{time_vs_threads.png}
   \caption{Shared-memory training time per epoch. Both variants use the
   same mini-batch data-parallel reduction scheme.}
   \label{fig:time_vs_threads}
@@ -544,7 +610,7 @@ to the single-threaded run of the same variant.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{speedup_vs_threads.png}
+  \includegraphics[width=0.9\textwidth]{speedup_vs_threads.png}
   \caption{Shared-memory speedup relative to each variant's one-thread
   run.}
   \label{fig:speedup_vs_threads}
@@ -576,7 +642,7 @@ the single-rank gradient exactly.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{time_vs_ranks_mpi.png}
+  \includegraphics[width=0.9\textwidth]{time_vs_ranks_mpi.png}
   \caption{MPI training time per epoch on the HPC host, using separate
   MPI address spaces and \texttt{Allreduce} communication.}
   \label{fig:mpi_ranks}
@@ -602,7 +668,7 @@ gradient exchange pays the network cost.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{hybrid_heatmap.png}
+  \includegraphics[width=0.9\textwidth]{hybrid_heatmap.png}
   \caption{Hybrid per-epoch time over the local \((R,T)\) matrix.}
   \label{fig:hybrid}
 \end{figure}
@@ -622,7 +688,7 @@ the RTX~5090.
 
 \begin{figure}[H]
   \centering
-  \includegraphics[width=\textwidth]{cuda_time_vs_batch.png}
+  \includegraphics[width=0.9\textwidth]{cuda_time_vs_batch.png}
   \caption{CUDA training time per epoch vs mini-batch size.}
   \label{fig:cudares}
 \end{figure}
@@ -636,6 +702,7 @@ they also change the optimisation path and reduce the 20-epoch test Q3
 from 62.28\,\% at batch 64 to 56.98\,\% at batch 512. For the accuracy
 comparison, batch 64 is therefore the fair CUDA setting.
 
+\newpage
 %%======================================================================
 \section{Discussion}\label{sec:discussion}
 
@@ -673,37 +740,25 @@ single most important simplification in the design.
 
 \subsection{Why OpenMP and Pthreads can differ}
 
-Both implementations use the \emph{same} data-parallel reduction scheme,
-so at steady state they converge to near-identical throughput. Any
-differences come from \textbf{runtime overhead}:
-
-\begin{itemize}[noitemsep,topsep=2pt]
-  \item OpenMP keeps a thread team alive across parallel regions, so
-  recurring parallel work reuses the same workers.
-  \item Our Pthreads implementation is \emph{also} a persistent pool with
-  barrier-based dispatch --- that was a deliberate design choice to
-  avoid per-batch fork/join overhead. A naive thread-create per batch is
-  orders of magnitude slower.
-  \item At very low thread counts (1--2) the OpenMP runtime's first-touch
-  memory placement tends to be slightly better, giving OpenMP a small
-  edge. At higher thread counts the gap closes and either variant's
-  overhead is dwarfed by the reduction cost.
-\end{itemize}
+Both implementations use the same data-parallel reduction
+(Equations~\eqref{eq:omp-reduce} and \eqref{eq:pth-reduce}) and a
+persistent worker pool, so steady-state throughput is close. The small
+remaining gap comes from runtime overhead: OpenMP's first-touch memory
+placement and implicit-barrier scheduling are slightly better tuned at
+low thread counts, while at higher thread counts either variant's
+overhead is dwarfed by the reduction cost.
 
 \subsection{Practical limits from our hardware}
 
-\begin{itemize}[noitemsep,topsep=2pt]
-  \item The MPI results are single-node multi-rank results. They validate
-  the distributed-memory code path, but do not include real network
-  latency between physical machines.
-  \item The CPU has mixed performance and efficiency cores. Scaling curves
-  should therefore be interpreted by core class: moving from P-cores to
-  E-cores and then to SMT threads naturally changes the slope.
-  \item CUDA must be launched from a shell that can see
-  \texttt{/dev/nvidia*}. Sandboxed shells may fail even when the host
-  terminal's \texttt{nvidia-smi} works.
-\end{itemize}
+The MPI numbers are single-node multi-rank: the distributed-memory code
+path is validated, but real cross-machine network latency is not
+exercised. The i9-14900K mixes performance, efficiency, and SMT cores,
+so the scaling slope naturally changes as ranks/threads spill from
+P-cores to E-cores to SMT siblings. Finally, CUDA must be launched from
+a shell that sees \verb|/dev/nvidia*|; sandboxed shells fail even when
+the host terminal's \verb|nvidia-smi| works.
 
+\newpage
 %%======================================================================
 \begin{thebibliography}{9}
 \bibitem{zhong2007} W. Zhong, G. Altun, X. Tian, R. Harrison, P.C. Tai,

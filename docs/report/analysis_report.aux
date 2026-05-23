@@ -1,0 +1,98 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\citation{rost1993}
+\citation{zhong2007}
+\citation{zhong2007}
+\citation{cuff1999}
+\citation{zhong2007}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introduction and Motivation}{1}{section.1}\protected@file@percent }
+\newlabel{sec:intro}{{1}{1}{Introduction and Motivation}{section.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Dataset and Preprocessing}{1}{section.2}\protected@file@percent }
+\newlabel{sec:data}{{2}{1}{Dataset and Preprocessing}{section.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Preprocessing workflow. Raw CB513 files are parsed, mapped from eight DSSP classes to three Q3 classes, converted to sliding-window one-hot features, split, and persisted as binary tensors for all training variants.}}{1}{figure.caption.1}\protected@file@percent }
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:preprocess_workflow}{{1}{1}{Preprocessing workflow. Raw CB513 files are parsed, mapped from eight DSSP classes to three Q3 classes, converted to sliding-window one-hot features, split, and persisted as binary tensors for all training variants}{figure.caption.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Dataset splits after preprocessing.}}{2}{table.caption.2}\protected@file@percent }
+\newlabel{tab:data}{{1}{2}{Dataset splits after preprocessing}{table.caption.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Serial Model and the $\mathrm  {Q}_3$ Metric}{2}{section.3}\protected@file@percent }
+\newlabel{sec:serial}{{3}{2}{Serial Model and the \texorpdfstring {$\mathrm {Q}_3$}{Q3} Metric}{section.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Serial training-loop workflow. Each mini-batch performs forward propagation, back-propagation, one SGD update, validation logging, and final test evaluation.}}{2}{figure.caption.3}\protected@file@percent }
+\newlabel{fig:serial_workflow}{{2}{2}{Serial training-loop workflow. Each mini-batch performs forward propagation, back-propagation, one SGD update, validation logging, and final test evaluation}{figure.caption.3}{}}
+\newlabel{eq:q3}{{1}{2}{Serial Model and the \texorpdfstring {$\mathrm {Q}_3$}{Q3} Metric}{equation.3.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Parallel Designs}{3}{section.4}\protected@file@percent }
+\newlabel{sec:designs}{{4}{3}{Parallel Designs}{section.4}{}}
+\newlabel{eq:parallel-sgd}{{2}{3}{Parallel Designs}{equation.4.2}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.1}OpenMP}{3}{subsection.4.1}\protected@file@percent }
+\newlabel{sec:openmp}{{4.1}{3}{OpenMP}{subsection.4.1}{}}
+\newlabel{eq:omp-reduce}{{3}{3}{OpenMP}{equation.4.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces OpenMP shared-memory workflow. Model weights are shared and read-only during the parallel region; each thread writes only to its own private gradient buffer before the master performs one reduction and SGD update.}}{4}{figure.caption.4}\protected@file@percent }
+\newlabel{fig:omp}{{3}{4}{OpenMP shared-memory workflow. Model weights are shared and read-only during the parallel region; each thread writes only to its own private gradient buffer before the master performs one reduction and SGD update}{figure.caption.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}POSIX Threads}{4}{subsection.4.2}\protected@file@percent }
+\newlabel{sec:pthreads}{{4.2}{4}{POSIX Threads}{subsection.4.2}{}}
+\newlabel{eq:pth-reduce}{{4}{4}{POSIX Threads}{equation.4.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {4}{\ignorespaces Pthreads master/worker workflow. Workers live for the entire run; two barriers gate each mini-batch, and the master performs the gradient reduction and SGD update after all workers finish their slices.}}{5}{figure.caption.5}\protected@file@percent }
+\newlabel{fig:pth}{{4}{5}{Pthreads master/worker workflow. Workers live for the entire run; two barriers gate each mini-batch, and the master performs the gradient reduction and SGD update after all workers finish their slices}{figure.caption.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.3}MPI (Distributed Memory)}{5}{subsection.4.3}\protected@file@percent }
+\newlabel{sec:mpi}{{4.3}{5}{MPI (Distributed Memory)}{subsection.4.3}{}}
+\newlabel{eq:mpi-reduce}{{5}{5}{MPI (Distributed Memory)}{equation.4.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {5}{\ignorespaces MPI distributed-memory workflow. Each rank owns a private model copy and local gradient; one packed \texttt  {MPI\_Allreduce(SUM)} synchronises the full gradient before every rank applies the same SGD update.}}{6}{figure.caption.6}\protected@file@percent }
+\newlabel{fig:mpi}{{5}{6}{MPI distributed-memory workflow. Each rank owns a private model copy and local gradient; one packed \texttt {MPI\_Allreduce(SUM)} synchronises the full gradient before every rank applies the same SGD update}{figure.caption.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.4}Hybrid MPI + OpenMP}{6}{subsection.4.4}\protected@file@percent }
+\newlabel{sec:hybrid}{{4.4}{6}{Hybrid MPI + OpenMP}{subsection.4.4}{}}
+\newlabel{eq:hyb-reduce}{{6}{6}{Hybrid MPI + OpenMP}{equation.4.6}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {6}{\ignorespaces Hybrid MPI+OpenMP workflow. MPI performs the outer distributed-memory decomposition across ranks, OpenMP performs the inner shared-memory decomposition within each rank, and only the rank-local reduced gradients enter the MPI \texttt  {Allreduce}.}}{7}{figure.caption.7}\protected@file@percent }
+\newlabel{fig:hybrid_workflow}{{6}{7}{Hybrid MPI+OpenMP workflow. MPI performs the outer distributed-memory decomposition across ranks, OpenMP performs the inner shared-memory decomposition within each rank, and only the rank-local reduced gradients enter the MPI \texttt {Allreduce}}{figure.caption.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.5}CUDA}{7}{subsection.4.5}\protected@file@percent }
+\newlabel{sec:cuda}{{4.5}{7}{CUDA}{subsection.4.5}{}}
+\newlabel{eq:cuda-reduce}{{7}{7}{CUDA}{equation.4.7}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {7}{\ignorespaces CUDA GPU workflow. The host shuffles indices and launches kernels, while the training data, model tensors, cuBLAS operations, custom kernels, and in-place SGD updates remain on the GPU.}}{8}{figure.caption.8}\protected@file@percent }
+\newlabel{fig:cuda}{{7}{8}{CUDA GPU workflow. The host shuffles indices and launches kernels, while the training data, model tensors, cuBLAS operations, custom kernels, and in-place SGD updates remain on the GPU}{figure.caption.8}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Experimental Setup}{8}{section.5}\protected@file@percent }
+\newlabel{sec:setup}{{5}{8}{Experimental Setup}{section.5}{}}
+\@writefile{toc}{\contentsline {paragraph}{Execution host.}{8}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{MPI mode.}{8}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{GPU host.}{8}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Fairness controls.}{8}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Measurement protocol.}{9}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {6}Results}{10}{section.6}\protected@file@percent }
+\newlabel{sec:results}{{6}{10}{Results}{section.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.1}Accuracy parity with the serial baseline}{10}{subsection.6.1}\protected@file@percent }
+\newlabel{sec:acc}{{6.1}{10}{Accuracy parity with the serial baseline}{subsection.6.1}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Final test $\mathrm  {Q}_3$ by variant at the reference configuration.}}{10}{table.caption.9}\protected@file@percent }
+\newlabel{tab:acc}{{2}{10}{Final test $\mathrm {Q}_3$ by variant at the reference configuration}{table.caption.9}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {8}{\ignorespaces Final test $\mathrm  {Q}_3$ by implementation. Bar labels show each variant's absolute Q3 and the percentage-point difference from the serial baseline.}}{10}{figure.caption.10}\protected@file@percent }
+\newlabel{fig:accuracy_by_variant}{{8}{10}{Final test $\mathrm {Q}_3$ by implementation. Bar labels show each variant's absolute Q3 and the percentage-point difference from the serial baseline}{figure.caption.10}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {9}{\ignorespaces Training convergence for the six reference implementations. The upper panel shows validation $\mathrm  {Q}_3$ over epochs; the lower panel shows training loss over epochs.}}{11}{figure.caption.11}\protected@file@percent }
+\newlabel{fig:convergence_curves}{{9}{11}{Training convergence for the six reference implementations. The upper panel shows validation $\mathrm {Q}_3$ over epochs; the lower panel shows training loss over epochs}{figure.caption.11}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.2}Shared-memory scaling: OpenMP vs Pthreads}{11}{subsection.6.2}\protected@file@percent }
+\newlabel{sec:shmem}{{6.2}{11}{Shared-memory scaling: OpenMP vs Pthreads}{subsection.6.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {10}{\ignorespaces Shared-memory training time per epoch. Both variants use the same mini-batch data-parallel reduction scheme.}}{12}{figure.caption.12}\protected@file@percent }
+\newlabel{fig:time_vs_threads}{{10}{12}{Shared-memory training time per epoch. Both variants use the same mini-batch data-parallel reduction scheme}{figure.caption.12}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {11}{\ignorespaces Shared-memory speedup relative to each variant's one-thread run.}}{12}{figure.caption.13}\protected@file@percent }
+\newlabel{fig:speedup_vs_threads}{{11}{12}{Shared-memory speedup relative to each variant's one-thread run}{figure.caption.13}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.3}Distributed-memory scaling: MPI}{13}{subsection.6.3}\protected@file@percent }
+\newlabel{sec:mpires}{{6.3}{13}{Distributed-memory scaling: MPI}{subsection.6.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {12}{\ignorespaces MPI training time per epoch on the HPC host, using separate MPI address spaces and \texttt  {Allreduce} communication.}}{13}{figure.caption.14}\protected@file@percent }
+\newlabel{fig:mpi_ranks}{{12}{13}{MPI training time per epoch on the HPC host, using separate MPI address spaces and \texttt {Allreduce} communication}{figure.caption.14}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.4}Hybrid MPI + OpenMP}{13}{subsection.6.4}\protected@file@percent }
+\newlabel{sec:hybres}{{6.4}{13}{Hybrid MPI + OpenMP}{subsection.6.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {13}{\ignorespaces Hybrid per-epoch time over the local \((R,T)\) matrix.}}{14}{figure.caption.15}\protected@file@percent }
+\newlabel{fig:hybrid}{{13}{14}{Hybrid per-epoch time over the local \((R,T)\) matrix}{figure.caption.15}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {6.5}GPU: CUDA}{14}{subsection.6.5}\protected@file@percent }
+\newlabel{sec:gpures}{{6.5}{14}{GPU: CUDA}{subsection.6.5}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {14}{\ignorespaces CUDA training time per epoch vs mini-batch size.}}{15}{figure.caption.16}\protected@file@percent }
+\newlabel{fig:cudares}{{14}{15}{CUDA training time per epoch vs mini-batch size}{figure.caption.16}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {7}Discussion}{16}{section.7}\protected@file@percent }
+\newlabel{sec:discussion}{{7}{16}{Discussion}{section.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.1}Where scaling works well}{16}{subsection.7.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.2}Where scaling plateaus}{16}{subsection.7.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.3}Why OpenMP and Pthreads can differ}{16}{subsection.7.3}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.4}Practical limits from our hardware}{16}{subsection.7.4}\protected@file@percent }
+\bibcite{zhong2007}{1}
+\bibcite{cuff1999}{2}
+\bibcite{rost1993}{3}
+\bibcite{ompiman}{4}
+\bibcite{cublas}{5}
+\gdef \@abspage@last{19}
